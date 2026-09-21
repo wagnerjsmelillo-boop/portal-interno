@@ -776,6 +776,13 @@ document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
       if(n>=3){ n=0; wipe(); location.reload(); } });
   })();
 
+  // ---------- permite instalar como aplicativo no celular ----------
+  if("serviceWorker" in navigator && location.protocol==="https:"){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
+
   // ---------- início ----------
   (function(){
     if(!cryptoOK){ document.body.innerHTML="<div style='color:#fca5a5;font:14px sans-serif;text-align:center;padding:40px'>Este aplicativo precisa de um endereço seguro (https).</div>"; return; }
