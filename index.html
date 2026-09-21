@@ -63,6 +63,12 @@
   .logopick{display:flex;gap:8px;margin-top:6px}
   .logopick button{margin-top:0;font-size:13px;padding:11px}
   .logopick .rm{flex:0 0 auto;background:#3a2130;color:#fca5a5}
+  .help{font-size:12px;line-height:1.6;color:var(--muted);background:var(--panel2);
+    border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin:0 0 10px}
+  .help b{color:var(--txt)}
+  .help .sep{display:block;height:7px}
+  .row2{display:flex;gap:8px;margin-top:8px}
+  .row2 button{margin:0;font-size:13px;padding:11px}
 
   /* ---- desenho (padrão) ---- */
   .patwrap{position:relative;width:250px;height:250px;margin:8px auto 0;touch-action:none;user-select:none}
@@ -151,8 +157,17 @@
         </div>
         <div class="field">
           <label>Senha de emparelhamento — a MESMA nos dois celulares</label>
-          <input id="cfgPair" type="text" placeholder="Cole aqui a senha que você recebeu" autocomplete="off" spellcheck="false">
-          <button type="button" id="cfgGen" class="ghost" style="font-size:13px;padding:10px;margin-top:8px">Gerar uma senha forte</button>
+          <div class="help">
+            <b>Você está montando o sistema?</b> Toque em “Gerar uma senha forte”, guarde a senha
+            e mande para a outra pessoa.
+            <span class="sep"></span>
+            <b>Recebeu a senha de alguém?</b> Cole ela no campo abaixo.
+          </div>
+          <input id="cfgPair" type="text" placeholder="Cole a senha aqui — ou gere uma abaixo" autocomplete="off" spellcheck="false">
+          <div class="row2">
+            <button type="button" id="cfgGen" class="ghost">Gerar uma senha forte</button>
+            <button type="button" id="cfgCopy" class="ghost hidden">Copiar</button>
+          </div>
         </div>
         <button id="cfgNext">Continuar</button>
         <div id="cfgMsg" class="msgline"></div>
@@ -621,8 +636,26 @@ document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
     var a=new Uint8Array(24); crypto.getRandomValues(a);
     var s=""; for(var i=0;i<a.length;i++){ s+=abc[a[i]%abc.length]; if(i%6===5 && i<a.length-1) s+="-"; }
     $("cfgPair").value=s;
+    $("cfgCopy").classList.remove("hidden");
     var m=$("cfgMsg"); m.className="msgline ok";
-    m.textContent="Anote e passe esta senha para a outra pessoa — ela precisa digitar a mesma.";
+    m.textContent="Guarde esta senha e mande para a outra pessoa. Ela precisa digitar exatamente a mesma.";
+  });
+
+  // copiar a senha gerada
+  $("cfgCopy").addEventListener("click",function(){
+    var v=$("cfgPair").value, m=$("cfgMsg"), b=this;
+    if(!v) return;
+    function feito(){ b.textContent="Copiado"; m.className="msgline ok";
+      m.textContent="Senha copiada. Cole num lugar seguro antes de continuar.";
+      setTimeout(function(){ b.textContent="Copiar"; },2500); }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(v).then(feito,function(){ manual(); });
+    } else { manual(); }
+    function manual(){
+      try{ $("cfgPair").select(); $("cfgPair").setSelectionRange(0,99999);
+        document.execCommand("copy"); feito(); }
+      catch(e){ m.className="msgline err"; m.textContent="Não consegui copiar. Selecione a senha e copie à mão."; }
+    }
   });
 
   $("cfgNext").addEventListener("click",function(){
