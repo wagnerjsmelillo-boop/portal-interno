@@ -776,12 +776,10 @@ document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
     startNetwork(pair);
   }
 
-  // ---------- reinício oculto (3 cliques no rodapé) ----------
-  (function(){
-    var el=$("lockFoot"), n=0, t=0;
-    el.addEventListener("click",function(){ var now=Date.now(); if(now-t>600) n=0; t=now; n++;
-      if(n>=3){ n=0; wipe(); location.reload(); } });
-  })();
+  // O atalho de reinício por 3 toques no rodapé foi REMOVIDO da versão final:
+  // qualquer pessoa com o aparelho na mão apagaria a configuração sem querer.
+  // Para zerar um aparelho use a página de configuração (admin.html, passo 4)
+  // ou "Reconfigurar tudo" no menu de dentro do aplicativo.
 
   // ---------- permite instalar como aplicativo no celular ----------
   if("serviceWorker" in navigator && location.protocol==="https:"){
