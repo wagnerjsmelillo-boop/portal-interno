@@ -654,15 +654,36 @@
     setTimeout(startLocked,400);
   });
 
+  // ---------- identidade visual ----------
+  // Nome e logomarca vêm SEMPRE do config.js quando existir, para que uma troca
+  // feita no admin apareça em todos os aparelhos sem ninguém reconfigurar.
+  // O que fica guardado no aparelho é só o segredo (desenho e senha), no cofre.
+  function idName(cfg){
+    var c=window.PORTAL_CONFIG||{};
+    if(c.name && String(c.name).trim()) return String(c.name).trim();
+    return (cfg && cfg.name) || "Empresa";
+  }
+  function idLogo(cfg){
+    var c=window.PORTAL_CONFIG||{};
+    if(c.logo && String(c.logo).slice(0,11)==="data:image/") return c.logo;
+    return (cfg && cfg.logo) || null;
+  }
+  function idColors(cfg){
+    var c=window.PORTAL_CONFIG||{};
+    if(c.logo && c.colors && c.colors.idle && c.colors.msg) return c.colors;
+    return (cfg && cfg.colors) || DEF_COLORS;
+  }
+
   // ---------- bloqueio ----------
   function startLocked(){
     var cfg=load(); if(!cfg){ show("setup"); return; }
     closeSession();
     $("messages").innerHTML="";
-    $("companyName").textContent=cfg.name; $("companyName").title=cfg.name;
-    fillLogo($("lockLogo"),cfg.logo); fillLogo($("insideLogo"),cfg.logo);
-    $("chatCompany").textContent=cfg.name;
-    applyColors(cfg.colors); setMsg(false);
+    var nm=idName(cfg);
+    $("companyName").textContent=nm; $("companyName").title=nm;
+    fillLogo($("lockLogo"),idLogo(cfg)); fillLogo($("insideLogo"),idLogo(cfg));
+    $("chatCompany").textContent=nm;
+    applyColors(idColors(cfg)); setMsg(false);
     lockOnHide=(cfg.lockOnHide!==false); paintSwitch();
     $("secretArea").classList.add("hidden"); $("uMsg").textContent="";
     show("lock");
