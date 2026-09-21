@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0f172a">
 <title>Portal Corporativo</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
   :root{
     --bg:#0f172a; --panel:#1e293b; --panel2:#172033;
@@ -131,11 +137,11 @@
       </div>
 
       <div class="body" id="setupStep1">
-        <div class="field">
+        <div class="field" id="fieldName">
           <label>Nome da empresa (aparece na tela de bloqueio)</label>
           <input id="cfgName" type="text" placeholder="Ex.: Nome da sua empresa" autocomplete="off">
         </div>
-        <div class="field">
+        <div class="field" id="fieldLogo">
           <label>Logomarca (opcional — imagem PNG ou JPG)</label>
           <div class="logopick">
             <button type="button" id="cfgPickLogo" class="ghost">Escolher imagem da logomarca</button>
@@ -145,7 +151,8 @@
         </div>
         <div class="field">
           <label>Senha de emparelhamento — a MESMA nos dois celulares</label>
-          <input id="cfgPair" type="password" placeholder="Digite uma senha longa (só nesta vez)" autocomplete="new-password">
+          <input id="cfgPair" type="text" placeholder="Cole aqui a senha que você recebeu" autocomplete="off" spellcheck="false">
+          <button type="button" id="cfgGen" class="ghost" style="font-size:13px;padding:10px;margin-top:8px">Gerar uma senha forte</button>
         </div>
         <button id="cfgNext">Continuar</button>
         <div id="cfgMsg" class="msgline"></div>
@@ -240,6 +247,7 @@
   </div>
   <audio id="remoteAudio" autoplay playsinline></audio>
 
+<script src="config.js"></script>
 <script>
 (function(){
   "use strict";
@@ -571,8 +579,25 @@
     });
   }
 
+  // ---------- identidade já preparada pelo administrador (config.js) ----------
+  // config.js é público: traz somente nome e logomarca, nunca segredos.
+  var preName=false;
+  (function(){
+    var c = window.PORTAL_CONFIG || {};
+    if(c.name && String(c.name).trim()){
+      pendingName=String(c.name).trim(); preName=true;
+      $("fieldName").classList.add("hidden");
+    }
+    if(c.logo && String(c.logo).slice(0,11)==="data:image/"){
+      pendingLogo=c.logo;
+      pendingColors=(c.colors && c.colors.idle && c.colors.msg) ? c.colors : DEF_COLORS;
+      $("fieldLogo").classList.add("hidden");
+    }
+  })();
+
   // ---------- configuração ----------
-  fillLogo($("setupLogo"),null);
+  fillLogo($("setupLogo"),pendingLogo);
+  if(pendingColors) applyColors(pendingColors);
   $("cfgPickLogo").addEventListener("click",function(){ $("cfgLogoFile").click(); });
   $("cfgLogoFile").addEventListener("change",function(){
     var f=this.files&&this.files[0]; if(!f) return;
@@ -585,11 +610,22 @@
     pendingLogo=null; pendingColors=null; $("cfgLogoFile").value="";
     fillLogo($("setupLogo"),null); applyColors(DEF_COLORS); this.classList.add("hidden");
   });
+  // senha de emparelhamento forte, gerada pelo proprio aparelho
+  $("cfgGen").addEventListener("click",function(){
+    var abc="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    var a=new Uint8Array(24); crypto.getRandomValues(a);
+    var s=""; for(var i=0;i<a.length;i++){ s+=abc[a[i]%abc.length]; if(i%6===5 && i<a.length-1) s+="-"; }
+    $("cfgPair").value=s;
+    var m=$("cfgMsg"); m.className="msgline ok";
+    m.textContent="Anote e passe esta senha para a outra pessoa — ela precisa digitar a mesma.";
+  });
+
   $("cfgNext").addEventListener("click",function(){
     var m=$("cfgMsg"); m.className="msgline";
-    pendingName=$("cfgName").value.trim(); pendingPair=$("cfgPair").value;
+    if(!preName){ pendingName=$("cfgName").value.trim(); }
+    pendingPair=$("cfgPair").value.trim();
     if(!pendingName){ m.className="msgline err"; m.textContent="Informe o nome da empresa."; return; }
-    if(pendingPair.length<8){ m.className="msgline err"; m.textContent="A senha de emparelhamento precisa de ao menos 8 caracteres."; return; }
+    if(pendingPair.length<12){ m.className="msgline err"; m.textContent="A senha de emparelhamento precisa de ao menos 12 caracteres. Use o botão para gerar uma forte."; return; }
     firstPat=null;
     $("setupStep1").classList.add("hidden"); $("setupStep2").classList.remove("hidden");
     $("setupSub").textContent="Crie o seu desenho de acesso";
