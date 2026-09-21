@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f172a">
+<title>Portal Corporativo</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#1e293b; --panel2:#172033;
+    --line:#334155; --txt:#e2e8f0; --muted:#94a3b8;
+    --brand:#2563eb; --brand-d:#1d4ed8; --err:#ef4444; --ok:#22c55e;
+    --logo-idle:#1e3a8a; --logo-msg:#38bdf8;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:radial-gradient(1200px 600px at 50% -10%,#1b2a4a 0%,var(--bg) 55%);
+    color:var(--txt);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px}
+  .card{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);
+    border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+  .top{padding:26px 26px 6px;text-align:center}
+
+  .logowrap{position:relative;width:60px;height:60px;margin:0 auto 14px}
+  .logo{width:60px;height:60px;border-radius:16px;
+    background:linear-gradient(135deg,var(--brand),#0ea5e9);
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+    border:2px solid var(--logo-idle);box-shadow:0 6px 16px rgba(0,0,0,.35);
+    transition:border-color 1.2s ease}
+  .logo.msg{border-color:var(--logo-msg)}
+  .logo svg{width:30px;height:30px;fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .logo img{width:100%;height:100%;object-fit:contain;padding:6px}
+  .logo.hasimg{background:#fff !important}
+
+  .company{font-size:20px;font-weight:700;margin:2px 0;cursor:default;user-select:none}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:6px}
+  .body{padding:18px 26px 26px}
+  .status{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:12px 14px;margin:10px 0 16px;font-size:13px;color:var(--muted)}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--err);box-shadow:0 0 8px var(--err)}
+  .notice{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.35);color:#fecaca;
+    border-radius:10px;padding:14px;font-size:13px;line-height:1.5;text-align:center}
+  .field{margin:14px 0}
+  label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px}
+  input[type=text],input[type=password]{width:100%;padding:13px 14px;border-radius:10px;
+    border:1px solid var(--line);background:#0b1220;color:var(--txt);font-size:15px;outline:none}
+  input:focus{border-color:var(--brand)}
+  button{width:100%;padding:13px;border:0;border-radius:10px;background:var(--brand);color:#fff;
+    font-size:15px;font-weight:600;cursor:pointer;margin-top:6px}
+  button:active{background:var(--brand-d)}
+  .ghost{background:#334155}
+  .foot{padding:14px 26px 22px;text-align:center;color:#5b6b82;font-size:11px;border-top:1px solid var(--line)}
+  .hidden{display:none}
+  .msgline{font-size:13px;margin-top:10px;text-align:center;min-height:16px}
+  .msgline.err{color:#fca5a5}
+  .msgline.ok{color:#86efac}
+  .logopick{display:flex;gap:8px;margin-top:6px}
+  .logopick button{margin-top:0;font-size:13px;padding:11px}
+  .logopick .rm{flex:0 0 auto;background:#3a2130;color:#fca5a5}
+
+  /* ---- desenho (padrão) ---- */
+  .patwrap{position:relative;width:250px;height:250px;margin:8px auto 0;touch-action:none;user-select:none}
+  .patgrid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr)}
+  .patnode{display:flex;align-items:center;justify-content:center}
+  .patnode span{width:16px;height:16px;border-radius:50%;background:#2c3a4f;border:2px solid #475569;
+    transition:transform .15s, background .15s, border-color .15s}
+  .patnode.on span{background:var(--logo-msg);border-color:var(--logo-msg);transform:scale(1.3)}
+  .patlines{position:absolute;inset:0;pointer-events:none}
+  .patlines polyline,.patlines line{fill:none;stroke:var(--logo-msg);stroke-width:4;
+    stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+  .pathint{text-align:center;color:var(--muted);font-size:12px;margin-top:4px}
+
+  /* ---- mensagens ---- */
+  .chat{display:flex;flex-direction:column;height:80vh;max-height:660px;position:relative}
+  .chat-head{display:flex;align-items:center;gap:11px;padding:12px 13px;border-bottom:1px solid var(--line)}
+  .chat-head .logowrap{width:40px;height:40px;margin:0}
+  .chat-head .logo{width:40px;height:40px;border-radius:11px}
+  .chat-head .logo svg{width:20px;height:20px}
+  .chat-title{flex:1;min-width:0}
+  .chat-title .nm{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chat-title .st{font-size:11px;color:var(--muted)}
+  .iconbtn{width:auto;background:transparent;color:var(--muted);padding:4px 8px;margin:0;font-size:22px;line-height:1}
+  .iconbtn svg{width:21px;height:21px;fill:none;stroke:#94a3b8;stroke-width:1.8;display:block}
+  .messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+  .bubble{max-width:80%;padding:9px 12px;border-radius:13px;font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+  .bubble.me{align-self:flex-end;background:var(--brand);color:#fff;border-bottom-right-radius:4px}
+  .bubble.you{align-self:flex-start;background:var(--panel2);border:1px solid var(--line);border-bottom-left-radius:4px}
+  .bubble img{max-width:100%;border-radius:9px;display:block;margin-top:2px;cursor:pointer}
+  .bubble .tm{font-size:10px;opacity:.65;margin-top:3px;text-align:right}
+  .sysmsg{align-self:center;font-size:11px;color:var(--muted);background:var(--panel2);
+    border:1px solid var(--line);padding:5px 12px;border-radius:999px;text-align:center}
+  .composer{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);align-items:center}
+  .composer input[type=text]{flex:1;margin:0}
+  .composer .cbtn{width:auto;margin:0;padding:12px 15px}
+  .composer .attach{background:#334155;padding:12px;width:auto;margin:0}
+  .composer .attach svg{width:20px;height:20px;stroke:#cbd5e1;fill:none;stroke-width:1.8;display:block}
+  .menu{position:absolute;top:56px;right:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.5);overflow:hidden;z-index:6;min-width:255px}
+  .menu button{width:100%;text-align:left;background:transparent;color:var(--txt);border-radius:0;
+    padding:13px 16px;font-weight:500;font-size:14px;margin:0;border-bottom:1px solid var(--line)}
+  .menu button:last-child{border-bottom:0}
+  .swrow{display:flex;align-items:center;gap:10px}
+  .swrow .sl{flex:1;line-height:1.3}
+  .swrow .sl small{display:block;color:var(--muted);font-size:11px;font-weight:400}
+  .sw{width:42px;height:24px;border-radius:999px;background:#475569;position:relative;flex:0 0 auto;transition:background .2s}
+  .sw i{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s}
+  .sw.on{background:var(--ok)}
+  .sw.on i{left:21px}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);display:flex;align-items:center;
+    justify-content:center;z-index:50;padding:20px}
+  .lightbox img{max-width:100%;max-height:100%;border-radius:8px}
+  .callbar{display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--panel2);
+    border-bottom:1px solid var(--line);font-size:13px}
+  .callbar .ct{flex:1;min-width:0}
+  .callbar .ct b{display:block;font-size:13px}
+  .callbar .ct span{font-size:11px;color:var(--muted)}
+  .callbar button{width:auto;margin:0;padding:9px 13px;font-size:13px;border-radius:9px}
+  .btn-ok{background:var(--ok)}
+  .btn-no{background:#b91c1c}
+</style>
+</head>
+<body>
+  <div class="card">
+
+    <!-- ===== CONFIGURAÇÃO ===== -->
+    <div id="setup" class="hidden">
+      <div class="top">
+        <div class="logowrap"><div class="logo" id="setupLogo"></div></div>
+        <div class="company">Configuração inicial</div>
+        <div class="sub" id="setupSub">Primeiro acesso — defina os dados do sistema</div>
+      </div>
+
+      <div class="body" id="setupStep1">
+        <div class="field">
+          <label>Nome da empresa (aparece na tela de bloqueio)</label>
+          <input id="cfgName" type="text" placeholder="Ex.: Nome da sua empresa" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Logomarca (opcional — imagem PNG ou JPG)</label>
+          <div class="logopick">
+            <button type="button" id="cfgPickLogo" class="ghost">Escolher imagem da logomarca</button>
+            <button type="button" id="cfgClearLogo" class="rm hidden">Remover</button>
+          </div>
+          <input id="cfgLogoFile" type="file" accept="image/*" class="hidden">
+        </div>
+        <div class="field">
+          <label>Senha de emparelhamento — a MESMA nos dois celulares</label>
+          <input id="cfgPair" type="password" placeholder="Digite uma senha longa (só nesta vez)" autocomplete="new-password">
+        </div>
+        <button id="cfgNext">Continuar</button>
+        <div id="cfgMsg" class="msgline"></div>
+      </div>
+
+      <div class="body hidden" id="setupStep2">
+        <div class="patwrap">
+          <svg class="patlines" id="sLines"></svg>
+          <div class="patgrid" id="sGrid"></div>
+        </div>
+        <div class="pathint" id="sHint">Ligue pelo menos 4 pontos</div>
+        <div id="sMsg" class="msgline"></div>
+        <button id="sBack" class="ghost">Voltar</button>
+      </div>
+
+      <div class="foot">O desenho é só deste aparelho. A senha de emparelhamento é igual nos dois.</div>
+    </div>
+
+    <!-- ===== BLOQUEIO ===== -->
+    <div id="lock" class="hidden">
+      <div class="top">
+        <div class="logowrap"><div class="logo" id="lockLogo" data-msglogo></div></div>
+        <div class="company" id="companyName" title="">Empresa</div>
+        <div class="sub">Sistema de Comunicação Interna</div>
+      </div>
+      <div class="body">
+        <div class="status">
+          <span class="dot"></span>
+          <span>Rede: <b style="color:#fca5a5">Externa (não autorizada)</b></span>
+        </div>
+        <div class="notice" id="lockNotice">
+          Acesso restrito.<br>
+          Este aplicativo só funciona dentro do ambiente corporativo da empresa.
+        </div>
+        <div id="secretArea" class="hidden">
+          <div class="patwrap">
+            <svg class="patlines" id="uLines"></svg>
+            <div class="patgrid" id="uGrid"></div>
+          </div>
+          <div id="uMsg" class="msgline"></div>
+        </div>
+      </div>
+      <div class="foot" id="lockFoot">© <span id="yr"></span> — Uso interno. Todos os direitos reservados.</div>
+    </div>
+
+    <!-- ===== DENTRO ===== -->
+    <div id="inside" class="hidden">
+      <div class="chat">
+        <div class="chat-head">
+          <div class="logowrap"><div class="logo" id="insideLogo" data-msglogo></div></div>
+          <div class="chat-title">
+            <div class="nm" id="chatCompany">Empresa</div>
+            <div class="st" id="connState">Iniciando...</div>
+          </div>
+          <button class="iconbtn" id="callBtn" title="Chamada de voz">
+            <svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .3 1.9.6 2.8a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.5 2.8.6a2 2 0 0 1 1.7 2z"/></svg>
+          </button>
+          <button class="iconbtn" id="menuBtn">&#8942;</button>
+        </div>
+
+        <div class="callbar hidden" id="callBar">
+          <div class="ct"><b id="callTitle">Chamada</b><span id="callSub"></span></div>
+          <button id="callAccept" class="btn-ok hidden">Atender</button>
+          <button id="callEnd" class="btn-no">Encerrar</button>
+        </div>
+
+        <div class="messages" id="messages"></div>
+        <div class="composer">
+          <button class="attach" id="attachBtn" title="Enviar foto">
+            <svg viewBox="0 0 24 24"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7-7l8.5-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.6 1.6 0 0 1-2.3-2.3l7.8-7.8"/></svg>
+          </button>
+          <input id="msgInput" type="text" placeholder="Mensagem" autocomplete="off">
+          <button class="cbtn" id="sendBtn">Enviar</button>
+          <input id="photoFile" type="file" accept="image/*" class="hidden">
+        </div>
+
+        <div class="menu hidden" id="menu">
+          <button id="swLock">
+            <span class="swrow">
+              <span class="sl">Encerrar ao sair da tela
+                <small>Fecha a conversa e apaga a tela ao trocar de app ou desligar</small></span>
+              <span class="sw" id="swLockUI"><i></i></span>
+            </span>
+          </button>
+          <button id="reconnectBtn">Reconectar</button>
+          <button id="reconfigBtn">Reconfigurar tudo</button>
+          <button id="logoutBtn">Sair (bloquear agora)</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <audio id="remoteAudio" autoplay playsinline></audio>
+
+<script>
+(function(){
+  "use strict";
+  var K={cfg:"pc_cfg_v1", dev:"pc_device_v1"};
+  var CFG_VERSION=4;
+  var MAX_TRIES=5, KDF_ROUNDS=200000;
+  var DEF_COLORS={idle:"#1e3a8a", msg:"#38bdf8"};
+  var $=function(id){ return document.getElementById(id); };
+  $("yr").textContent=new Date().getFullYear();
+
+  var SHIELD='<svg viewBox="0 0 24 24"><path d="M12 3l7 2.5v5c0 4.2-2.9 7.6-7 8.9-4.1-1.3-7-4.7-7-8.9v-5L12 3z"/><path d="M9.2 12.2l2 2 3.6-4"/></svg>';
+  var cryptoOK=!!(window.crypto && crypto.subtle);
+  var pendingLogo=null, pendingColors=null, pendingName="", pendingPair="", firstPat=null;
+
+  var roomKey=null, peer=null, conn=null, myId=null, otherId=null, idA=null, idB=null;
+  var retryTimer=null, wired=false;
+  var localStream=null, currentCall=null, pendingCall=null, callTimer=null, callStart=0;
+  var lockOnHide=true, skipHideOnce=false;
+
+  // ---------- logo / cores ----------
+  function fillLogo(el,d){ if(d){ el.classList.add("hasimg"); el.innerHTML='<img alt="" src="'+d+'">'; }
+    else { el.classList.remove("hasimg"); el.innerHTML=SHIELD; } }
+  function applyColors(c){ c=c||DEF_COLORS; var r=document.documentElement.style;
+    r.setProperty("--logo-idle",c.idle); r.setProperty("--logo-msg",c.msg); }
+  function setMsg(on){ var e=document.querySelectorAll("[data-msglogo]");
+    for(var i=0;i<e.length;i++){ e[i].classList.toggle("msg",!!on); } }
+  function hx(c){ return "#"+[c.r,c.g,c.b].map(function(v){ return Math.max(0,Math.min(255,v)).toString(16).padStart(2,"0"); }).join(""); }
+  function toDark(c,f){ return {r:Math.round(c.r*f+30*(1-f)),g:Math.round(c.g*f+41*(1-f)),b:Math.round(c.b*f+59*(1-f))}; }
+  function toVivid(c){ var mx=Math.max(c.r,c.g,c.b),f=mx<170?170/Math.max(mx,1):1.08;
+    return {r:Math.round(c.r*f),g:Math.round(c.g*f),b:Math.round(c.b*f)}; }
+  function pickColors(ctx,w,h){
+    var d; try{ d=ctx.getImageData(0,0,w,h).data; }catch(e){ return null; }
+    var b={},k,e2;
+    for(var i=0;i<d.length;i+=4){
+      var r=d[i],g=d[i+1],bl=d[i+2],a=d[i+3];
+      if(a<140) continue;
+      var mx=Math.max(r,g,bl),mn=Math.min(r,g,bl);
+      if(mx>238&&mn>238) continue; if(mx<28) continue;
+      k=(r>>4)+"_"+(g>>4)+"_"+(bl>>4);
+      e2=b[k]||(b[k]={n:0,r:0,g:0,b:0}); e2.n++; e2.r+=r; e2.g+=g; e2.b+=bl;
+    }
+    var arr=[]; for(k in b){ e2=b[k]; arr.push({n:e2.n,r:Math.round(e2.r/e2.n),g:Math.round(e2.g/e2.n),b:Math.round(e2.b/e2.n)}); }
+    if(!arr.length) return null;
+    arr.sort(function(x,y){ return y.n-x.n; });
+    var c1=arr[0],c2=null;
+    for(var j=1;j<arr.length;j++){ var dd=Math.abs(arr[j].r-c1.r)+Math.abs(arr[j].g-c1.g)+Math.abs(arr[j].b-c1.b); if(dd>110){ c2=arr[j]; break; } }
+    if(!c2) c2=c1;
+    return { idle:hx(toDark(c1,0.42)), msg:hx(toVivid(c2)) };
+  }
+  function scaleImage(file,max,cb){
+    var img=new Image(), url=URL.createObjectURL(file);
+    img.onload=function(){
+      var w=img.width,h=img.height,s=Math.min(max/w,max/h,1);
+      var cw=Math.max(1,Math.round(w*s)),ch=Math.max(1,Math.round(h*s));
+      var c=document.createElement("canvas"); c.width=cw; c.height=ch;
+      var x=c.getContext("2d",{willReadFrequently:true}); x.drawImage(img,0,0,cw,ch);
+      URL.revokeObjectURL(url); var cols=pickColors(x,cw,ch);
+      try{ cb(c.toDataURL("image/png"),cols); }catch(e){ cb(null,null); }
+    };
+    img.onerror=function(){ URL.revokeObjectURL(url); cb(null,null); }; img.src=url;
+  }
+  function scalePhoto(file,max,cb){
+    var img=new Image(), url=URL.createObjectURL(file);
+    img.onload=function(){
+      var w=img.width,h=img.height,s=Math.min(max/w,max/h,1);
+      var cw=Math.max(1,Math.round(w*s)),ch=Math.max(1,Math.round(h*s));
+      var c=document.createElement("canvas"); c.width=cw; c.height=ch;
+      c.getContext("2d").drawImage(img,0,0,cw,ch); URL.revokeObjectURL(url);
+      try{ cb(c.toDataURL("image/jpeg",0.8)); }catch(e){ cb(null); }
+    };
+    img.onerror=function(){ URL.revokeObjectURL(url); cb(null); }; img.src=url;
+  }
+
+  // ---------- utilidades ----------
+  function toHex(b){ var a=new Uint8Array(b),s=""; for(var i=0;i<a.length;i++){ s+=a[i].toString(16).padStart(2,"0"); } return s; }
+  function hexToU8(h){ var a=new Uint8Array(h.length/2); for(var i=0;i<a.length;i++){ a[i]=parseInt(h.substr(i*2,2),16); } return a; }
+  function abToB64(b){ var a=new Uint8Array(b),s=""; for(var i=0;i<a.length;i++){ s+=String.fromCharCode(a[i]); } return btoa(s); }
+  function b64ToU8(s){ var t=atob(s),a=new Uint8Array(t.length); for(var i=0;i<t.length;i++){ a[i]=t.charCodeAt(i); } return a; }
+  async function sha(s){ var d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)); return toHex(d); }
+  function rnd(n){ var a=new Uint8Array(n); if(window.crypto&&crypto.getRandomValues){crypto.getRandomValues(a);}
+    else {for(var i=0;i<n;i++)a[i]=Math.floor(Math.random()*256);} return toHex(a.buffer); }
+  function deviceId(){ try{ var d=localStorage.getItem(K.dev); if(!d){ d=rnd(32); localStorage.setItem(K.dev,d); } return d; }catch(e){ return "no-device"; } }
+  function load(){ try{ return JSON.parse(localStorage.getItem(K.cfg)||"null"); }catch(e){ return null; } }
+  function save(o){ try{ localStorage.setItem(K.cfg,JSON.stringify(o)); return true; }catch(e){ return false; } }
+  function wipe(){ try{ localStorage.removeItem(K.cfg); }catch(e){} }
+  function show(w){ ["setup","lock","inside"].forEach(function(id){ $(id).classList.add("hidden"); }); $(w).classList.remove("hidden"); }
+
+  // ---------- cofre (desenho abre o cofre) ----------
+  async function keyFromPattern(pat,salt){
+    var enc=new TextEncoder();
+    var base=await crypto.subtle.importKey("raw",enc.encode(pat+"::"+deviceId()),"PBKDF2",false,["deriveKey"]);
+    return crypto.subtle.deriveKey({name:"PBKDF2",salt:hexToU8(salt),iterations:KDF_ROUNDS,hash:"SHA-256"},
+      base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+  }
+  async function sealVault(pat,salt,obj){
+    var k=await keyFromPattern(pat,salt);
+    var iv=crypto.getRandomValues(new Uint8Array(12));
+    var ct=await crypto.subtle.encrypt({name:"AES-GCM",iv:iv},k,new TextEncoder().encode(JSON.stringify(obj)));
+    return {iv:toHex(iv.buffer),ct:abToB64(ct)};
+  }
+  async function openVault(pat,salt,v){
+    var k=await keyFromPattern(pat,salt);
+    var pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:hexToU8(v.iv)},k,b64ToU8(v.ct).buffer);
+    return JSON.parse(new TextDecoder().decode(pt));
+  }
+  async function deriveRoomKey(p){
+    var enc=new TextEncoder();
+    var base=await crypto.subtle.importKey("raw",enc.encode(p),"PBKDF2",false,["deriveKey"]);
+    return crypto.subtle.deriveKey({name:"PBKDF2",salt:enc.encode("comunicador-sala-v1"),iterations:100000,hash:"SHA-256"},
+      base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+  }
+  async function encryptObj(o){
+    var iv=crypto.getRandomValues(new Uint8Array(12));
+    var ct=await crypto.subtle.encrypt({name:"AES-GCM",iv:iv},roomKey,new TextEncoder().encode(JSON.stringify(o)));
+    return {iv:toHex(iv.buffer),ct:abToB64(ct)};
+  }
+  async function decryptObj(p){
+    var pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:hexToU8(p.iv)},roomKey,b64ToU8(p.ct).buffer);
+    return JSON.parse(new TextDecoder().decode(pt));
+  }
+
+  // ---------- componente de desenho ----------
+  function makePattern(gridEl,svgEl,onDone){
+    var nodes=[],seq=[],drawing=false,C=[];
+    for(var i=0;i<9;i++){ var d=document.createElement("div"); d.className="patnode";
+      d.appendChild(document.createElement("span")); gridEl.appendChild(d); nodes.push(d); }
+    function centers(){
+      var gr=gridEl.getBoundingClientRect();
+      svgEl.setAttribute("viewBox","0 0 "+gr.width+" "+gr.height);
+      return nodes.map(function(n){ var r=n.getBoundingClientRect();
+        return {x:r.left-gr.left+r.width/2, y:r.top-gr.top+r.height/2}; });
+    }
+    function reset(){ seq=[]; svgEl.innerHTML=""; nodes.forEach(function(n){ n.classList.remove("on"); }); }
+    function draw(tmp){
+      var p="";
+      if(seq.length){
+        p='<polyline points="'+seq.map(function(i){ return C[i].x+","+C[i].y; }).join(" ")+'"/>';
+        if(tmp){ var l=C[seq[seq.length-1]]; p+='<line x1="'+l.x+'" y1="'+l.y+'" x2="'+tmp.x+'" y2="'+tmp.y+'"/>'; }
+      }
+      svgEl.innerHTML=p;
+    }
+    function hit(x,y){ for(var i=0;i<9;i++){ var dx=x-C[i].x,dy=y-C[i].y; if(dx*dx+dy*dy<27*27) return i; } return -1; }
+    function pos(e){ var r=gridEl.getBoundingClientRect(); var t=(e.touches&&e.touches[0])||e;
+      return {x:t.clientX-r.left, y:t.clientY-r.top}; }
+    function start(e){ e.preventDefault(); C=centers(); reset(); drawing=true; move(e); }
+    function move(e){
+      if(!drawing) return;
+      if(e.cancelable) e.preventDefault();
+      var p=pos(e), i=hit(p.x,p.y);
+      if(i>=0 && seq.indexOf(i)<0){ seq.push(i); nodes[i].classList.add("on"); }
+      draw(p);
+    }
+    function end(){
+      if(!drawing) return; drawing=false; draw(null);
+      var s=seq.join("-"), n=seq.length;
+      setTimeout(reset,350);
+      onDone(n>=4?s:null);
+    }
+    gridEl.addEventListener("mousedown",start);
+    window.addEventListener("mousemove",move);
+    window.addEventListener("mouseup",end);
+    gridEl.addEventListener("touchstart",start,{passive:false});
+    gridEl.addEventListener("touchmove",move,{passive:false});
+    gridEl.addEventListener("touchend",end);
+    return {reset:reset};
+  }
+
+  // ---------- mensagens ----------
+  function fmtTime(t){ var d=new Date(t); return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2); }
+  function addBubble(side,o){
+    var box=$("messages"), b=document.createElement("div"); b.className="bubble "+side;
+    if(o.type==="photo" && o.img){
+      if(o.text){ var cap=document.createElement("div"); cap.textContent=o.text; b.appendChild(cap); }
+      var im=document.createElement("img"); im.src=o.img;
+      im.addEventListener("click",function(){ openLightbox(o.img); }); b.appendChild(im);
+    } else { var tx=document.createElement("div"); tx.textContent=o.text||""; b.appendChild(tx); }
+    var tm=document.createElement("div"); tm.className="tm"; tm.textContent=fmtTime(o.t||Date.now()); b.appendChild(tm);
+    box.appendChild(b); box.scrollTop=box.scrollHeight;
+  }
+  function addSystem(t){ var box=$("messages"),s=document.createElement("div"); s.className="sysmsg"; s.textContent=t;
+    box.appendChild(s); box.scrollTop=box.scrollHeight; }
+  function openLightbox(src){
+    var lb=document.createElement("div"); lb.className="lightbox";
+    var im=document.createElement("img"); im.src=src; lb.appendChild(im);
+    lb.addEventListener("click",function(){ document.body.removeChild(lb); });
+    document.body.appendChild(lb);
+  }
+  function insideVisible(){ return !$("inside").classList.contains("hidden"); }
+  function onIncoming(o){ addBubble("you",o); if(document.hidden || !insideVisible()){ setMsg(true); } }
+  function setConn(t){ $("connState").textContent=t; }
+
+  // ---------- rede ----------
+  function loadScript(u){ return new Promise(function(res,rej){ var s=document.createElement("script");
+    s.src=u; s.async=true; s.onload=function(){res();}; s.onerror=function(){rej(new Error("x"));};
+    document.head.appendChild(s); }); }
+  async function ensurePeer(){
+    if(window.Peer) return true;
+    var urls=["https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js",
+              "https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js",
+              "https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"];
+    for(var i=0;i<urls.length;i++){ try{ await loadScript(urls[i]); if(window.Peer) return true; }catch(e){} }
+    return false;
+  }
+  async function startNetwork(pair){
+    setConn("Conectando...");
+    if(!await ensurePeer()){ setConn("Sem conexão com a rede"); return; }
+    idA="pc"+(await sha(pair+":a")).slice(0,24);
+    idB="pc"+(await sha(pair+":b")).slice(0,24);
+    register(idA,idB);
+  }
+  function register(mine,other){
+    myId=mine; otherId=other;
+    try{ if(peer) peer.destroy(); }catch(e){}
+    try{ peer=new Peer(mine,{debug:0}); }catch(e){ setConn("Sem conexão com a rede"); return; }
+    peer.on("open",function(){ setConn("Aguardando o outro aparelho"); if(mine===idB) tryConnect(); startRetry(); });
+    peer.on("connection",function(c){ bindConn(c); });
+    peer.on("call",function(c){ onIncomingCall(c); });
+    peer.on("disconnected",function(){ setConn("Reconectando..."); try{ peer.reconnect(); }catch(e){} });
+    peer.on("error",function(err){
+      var t=err&&err.type;
+      if(t==="unavailable-id" && mine===idA){ register(idB,idA); return; }
+      if(t==="peer-unavailable"){ setConn("Aguardando o outro aparelho"); return; }
+      if(t==="network"||t==="server-error"){ setConn("Rede instável"); }
+    });
+  }
+  function tryConnect(){ if(conn&&conn.open) return; try{ bindConn(peer.connect(otherId,{reliable:true})); }catch(e){} }
+  function startRetry(){
+    if(retryTimer) clearInterval(retryTimer);
+    retryTimer=setInterval(function(){
+      if(!peer||peer.destroyed) return;
+      if(conn&&conn.open) return;
+      if(myId===idB) tryConnect();
+    },5000);
+  }
+  function bindConn(c){
+    conn=c;
+    c.on("open",function(){ setConn("Conectado"); addSystem("Canal seguro estabelecido."); });
+    c.on("data",async function(p){ if(!roomKey) return; try{ onIncoming(await decryptObj(p)); }catch(e){} });
+    c.on("close",function(){ conn=null; setConn("Aguardando o outro aparelho"); });
+    c.on("error",function(){});
+  }
+  async function wireSend(o){
+    addBubble("me",o);
+    if(!roomKey) return;
+    try{ var p=await encryptObj(o); if(conn&&conn.open) conn.send(p); }catch(e){}
+  }
+
+  // ---------- voz ----------
+  function showCallBar(t,s,acc){ $("callTitle").textContent=t; $("callSub").textContent=s||"";
+    $("callAccept").classList.toggle("hidden",!acc); $("callBar").classList.remove("hidden"); }
+  function hideCallBar(){ $("callBar").classList.add("hidden"); }
+  function startTimer(){
+    callStart=Date.now(); if(callTimer) clearInterval(callTimer);
+    callTimer=setInterval(function(){ var s=Math.floor((Date.now()-callStart)/1000);
+      $("callSub").textContent=("0"+Math.floor(s/60)).slice(-2)+":"+("0"+(s%60)).slice(-2); },1000);
+  }
+  async function getMic(){
+    skipHideOnce=true;
+    try{ return await navigator.mediaDevices.getUserMedia({audio:true}); }
+    catch(e){ addSystem("Microfone não autorizado."); return null; }
+  }
+  async function startCall(){
+    if(!conn||!conn.open){ addSystem("O outro aparelho não está conectado."); return; }
+    if(currentCall||pendingCall) return;
+    var st=await getMic(); if(!st) return;
+    localStream=st; showCallBar("Chamando...","",false);
+    try{ bindCall(peer.call(otherId,localStream)); }catch(e){ endCall(); }
+  }
+  function onIncomingCall(c){ pendingCall=c; showCallBar("Chamada recebida","",true); setMsg(true); }
+  async function acceptCall(){
+    if(!pendingCall) return;
+    var st=await getMic(); if(!st) return;
+    localStream=st; var c=pendingCall; pendingCall=null;
+    try{ c.answer(localStream); bindCall(c); }catch(e){ endCall(); }
+  }
+  function bindCall(c){
+    currentCall=c;
+    c.on("stream",function(rs){ var a=$("remoteAudio"); a.srcObject=rs; a.play().catch(function(){});
+      showCallBar("Em chamada","00:00",false); startTimer(); });
+    c.on("close",endCall); c.on("error",endCall);
+  }
+  function endCall(){
+    try{ if(currentCall) currentCall.close(); }catch(e){}
+    try{ if(pendingCall) pendingCall.close(); }catch(e){}
+    currentCall=null; pendingCall=null;
+    if(callTimer){ clearInterval(callTimer); callTimer=null; }
+    try{ if(localStream) localStream.getTracks().forEach(function(t){ t.stop(); }); }catch(e){}
+    localStream=null;
+    try{ $("remoteAudio").srcObject=null; }catch(e){}
+    hideCallBar();
+  }
+
+  // ---------- eventos do bate-papo ----------
+  function sendText(){ var t=$("msgInput").value.trim(); if(!t) return;
+    wireSend({type:"text",text:t,t:Date.now()}); $("msgInput").value=""; }
+  function paintSwitch(){ $("swLockUI").classList.toggle("on", !!lockOnHide); }
+  function wireOnce(){
+    if(wired) return; wired=true;
+    $("sendBtn").addEventListener("click",sendText);
+    $("msgInput").addEventListener("keydown",function(e){ if(e.key==="Enter") sendText(); });
+    $("attachBtn").addEventListener("click",function(){ skipHideOnce=true; $("photoFile").click(); });
+    $("photoFile").addEventListener("change",function(){
+      var f=this.files&&this.files[0]; this.value=""; if(!f) return;
+      scalePhoto(f,1024,function(d){ if(!d) return;
+        wireSend({type:"photo",img:d,text:$("msgInput").value.trim(),t:Date.now()}); $("msgInput").value=""; });
+    });
+    $("callBtn").addEventListener("click",startCall);
+    $("callAccept").addEventListener("click",acceptCall);
+    $("callEnd").addEventListener("click",endCall);
+    $("menuBtn").addEventListener("click",function(){ $("menu").classList.toggle("hidden"); });
+    document.addEventListener("click",function(e){
+      if(!$("menu").classList.contains("hidden") && !$("menu").contains(e.target) && e.target!==$("menuBtn")){
+        $("menu").classList.add("hidden"); }
+    });
+    $("swLock").addEventListener("click",function(e){
+      e.stopPropagation();
+      lockOnHide=!lockOnHide; paintSwitch();
+      var c=load(); if(c){ c.lockOnHide=lockOnHide; save(c); }
+    });
+    $("reconnectBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); setConn("Reconectando..."); tryConnect(); });
+    $("reconfigBtn").addEventListener("click",function(){ wipe(); location.reload(); });
+    $("logoutBtn").addEventListener("click",function(){ lockNow(); });
+    window.addEventListener("focus",function(){ if(insideVisible()) setMsg(false); });
+    document.addEventListener("visibilitychange",function(){
+      if(document.hidden){
+        if(skipHideOnce){ skipHideOnce=false; return; }
+        if(lockOnHide && insideVisible() && !currentCall){ lockNow(); }
+      } else { if(insideVisible()) setMsg(false); }
+    });
+  }
+
+  // ---------- configuração ----------
+  fillLogo($("setupLogo"),null);
+  $("cfgPickLogo").addEventListener("click",function(){ $("cfgLogoFile").click(); });
+  $("cfgLogoFile").addEventListener("change",function(){
+    var f=this.files&&this.files[0]; if(!f) return;
+    scaleImage(f,160,function(d,cols){ if(!d) return;
+      pendingLogo=d; pendingColors=cols||DEF_COLORS;
+      fillLogo($("setupLogo"),pendingLogo); applyColors(pendingColors);
+      $("cfgClearLogo").classList.remove("hidden"); });
+  });
+  $("cfgClearLogo").addEventListener("click",function(){
+    pendingLogo=null; pendingColors=null; $("cfgLogoFile").value="";
+    fillLogo($("setupLogo"),null); applyColors(DEF_COLORS); this.classList.add("hidden");
+  });
+  $("cfgNext").addEventListener("click",function(){
+    var m=$("cfgMsg"); m.className="msgline";
+    pendingName=$("cfgName").value.trim(); pendingPair=$("cfgPair").value;
+    if(!pendingName){ m.className="msgline err"; m.textContent="Informe o nome da empresa."; return; }
+    if(pendingPair.length<8){ m.className="msgline err"; m.textContent="A senha de emparelhamento precisa de ao menos 8 caracteres."; return; }
+    firstPat=null;
+    $("setupStep1").classList.add("hidden"); $("setupStep2").classList.remove("hidden");
+    $("setupSub").textContent="Crie o seu desenho de acesso";
+    $("sHint").textContent="Ligue pelo menos 4 pontos";
+    $("sMsg").textContent="";
+  });
+  $("sBack").addEventListener("click",function(){
+    $("setupStep2").classList.add("hidden"); $("setupStep1").classList.remove("hidden");
+    $("setupSub").textContent="Primeiro acesso — defina os dados do sistema";
+  });
+
+  makePattern($("sGrid"),$("sLines"),async function(pat){
+    var m=$("sMsg"); m.className="msgline";
+    if(!pat){ m.className="msgline err"; m.textContent="Use pelo menos 4 pontos."; return; }
+    if(!firstPat){ firstPat=pat; $("sHint").textContent="Repita o mesmo desenho para confirmar";
+      m.className="msgline ok"; m.textContent="Agora repita."; return; }
+    if(pat!==firstPat){ firstPat=null; $("sHint").textContent="Ligue pelo menos 4 pontos";
+      m.className="msgline err"; m.textContent="Os desenhos não conferem. Comece de novo."; return; }
+    m.className="msgline"; m.textContent="Salvando...";
+    var salt=rnd(16);
+    var vault=await sealVault(pat,salt,{pair:pendingPair});
+    var ok=save({v:CFG_VERSION,name:pendingName,logo:pendingLogo||null,colors:pendingColors||DEF_COLORS,
+      salt:salt,vault:vault,att:0,lockOnHide:true});
+    if(!ok){ m.className="msgline err"; m.textContent="Não foi possível salvar (imagem muito grande?)."; return; }
+    m.className="msgline ok"; m.textContent="Pronto!";
+    setTimeout(startLocked,400);
+  });
+
+  // ---------- bloqueio ----------
+  function startLocked(){
+    var cfg=load(); if(!cfg){ show("setup"); return; }
+    closeSession();
+    $("messages").innerHTML="";
+    $("companyName").textContent=cfg.name; $("companyName").title=cfg.name;
+    fillLogo($("lockLogo"),cfg.logo); fillLogo($("insideLogo"),cfg.logo);
+    $("chatCompany").textContent=cfg.name;
+    applyColors(cfg.colors); setMsg(false);
+    lockOnHide=(cfg.lockOnHide!==false); paintSwitch();
+    $("secretArea").classList.add("hidden"); $("uMsg").textContent="";
+    show("lock");
+  }
+  function lockNow(){ $("menu").classList.add("hidden"); endCall(); startLocked(); }
+  function closeSession(){
+    endCall(); roomKey=null;
+    if(retryTimer){ clearInterval(retryTimer); retryTimer=null; }
+    try{ if(conn) conn.close(); }catch(e){} conn=null;
+    try{ if(peer) peer.destroy(); }catch(e){} peer=null;
+  }
+  (function(){
+    var el=$("companyName"), last=0;
+    function reveal(){ $("secretArea").classList.remove("hidden"); }
+    el.addEventListener("dblclick",reveal);
+    el.addEventListener("touchend",function(e){ var n=Date.now(); if(n-last<350){ e.preventDefault(); reveal(); } last=n; },{passive:false});
+  })();
+
+  makePattern($("uGrid"),$("uLines"),async function(pat){
+    var cfg=load(), m=$("uMsg"); m.className="msgline";
+    if(!cfg) return;
+    if(!pat){ m.className="msgline err"; m.textContent="Use pelo menos 4 pontos."; return; }
+    m.textContent="Verificando...";
+    var data=null;
+    try{ data=await openVault(pat,cfg.salt,cfg.vault); }catch(e){ data=null; }
+    if(!data){
+      cfg.att=(cfg.att||0)+1;
+      if(cfg.att>=MAX_TRIES){ wipe(); m.className="msgline err"; m.textContent="Sistema reiniciado por segurança.";
+        setTimeout(function(){ location.reload(); },1200); return; }
+      save(cfg);
+      m.className="msgline err";
+      m.textContent="Desenho incorreto. Restam "+(MAX_TRIES-cfg.att)+" tentativa(s).";
+      return;
+    }
+    cfg.att=0; save(cfg);
+    m.className="msgline ok"; m.textContent="Acesso liberado.";
+    setTimeout(function(){ enterSecure(data.pair); },250);
+  });
+
+  async function enterSecure(pair){
+    roomKey=await deriveRoomKey(pair);
+    wireOnce(); paintSwitch();
+    $("messages").innerHTML=""; setMsg(false); show("inside");
+    addSystem("Conversa não fica gravada no aparelho.");
+    startNetwork(pair);
+  }
+
+  // ---------- reinício oculto (3 cliques no rodapé) ----------
+  (function(){
+    var el=$("lockFoot"), n=0, t=0;
+    el.addEventListener("click",function(){ var now=Date.now(); if(now-t>600) n=0; t=now; n++;
+      if(n>=3){ n=0; wipe(); location.reload(); } });
+  })();
+
+  // ---------- início ----------
+  (function(){
+    if(!cryptoOK){ document.body.innerHTML="<div style='color:#fca5a5;font:14px sans-serif;text-align:center;padding:40px'>Este aplicativo precisa de um endereço seguro (https).</div>"; return; }
+    var cfg=load();
+    if(cfg && cfg.v===CFG_VERSION){ startLocked(); }
+    else { if(cfg) wipe(); applyColors(DEF_COLORS); show("setup"); }
+  })();
+})();
+</script>
+</body>
+</html>
