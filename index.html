@@ -247,7 +247,12 @@
   </div>
   <audio id="remoteAudio" autoplay playsinline></audio>
 
-<script src="config.js"></script>
+<script>
+/* A identidade (nome + logomarca) e sempre buscada nova. Sem isto, o servidor
+   guarda o config.js por 10 minutos e uma troca feita no admin demoraria
+   ate esse tempo para aparecer nos aparelhos. */
+document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
+</script>
 <script>
 (function(){
   "use strict";
