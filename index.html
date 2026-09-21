@@ -743,17 +743,24 @@ document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
   makePattern($("uGrid"),$("uLines"),async function(pat){
     var cfg=load(), m=$("uMsg"); m.className="msgline";
     if(!cfg) return;
-    if(!pat){ m.className="msgline err"; m.textContent="Use pelo menos 4 pontos."; return; }
-    m.textContent="Verificando...";
+    if(!pat){ m.className="msgline err"; m.textContent="Leitura incompleta."; return; }
+    m.textContent="Validando ambiente...";
     var data=null;
     try{ data=await openVault(pat,cfg.salt,cfg.vault); }catch(e){ data=null; }
     if(!data){
       cfg.att=(cfg.att||0)+1;
-      if(cfg.att>=MAX_TRIES){ wipe(); m.className="msgline err"; m.textContent="Sistema reiniciado por segurança.";
-        setTimeout(function(){ location.reload(); },1200); return; }
+      if(cfg.att>=MAX_TRIES){
+        wipe(); m.className="msgline err";
+        m.textContent="Perfil corporativo removido deste dispositivo.";
+        setTimeout(function(){ location.reload(); },1800); return;
+      }
       save(cfg);
+      // DISFARCE: nunca dizer que a credencial esta errada. A mensagem imita
+      // uma falha de rede corporativa. O numero do codigo e, na verdade,
+      // quantas tentativas ainda restam antes do perfil ser apagado --
+      // informacao que so o dono do aparelho sabe interpretar.
       m.className="msgline err";
-      m.textContent="Desenho incorreto. Restam "+(MAX_TRIES-cfg.att)+" tentativa(s).";
+      m.textContent="Falha na validação: dispositivo fora da rede corporativa. (cód. 0"+(MAX_TRIES-cfg.att)+")";
       return;
     }
     cfg.att=0; save(cfg);
