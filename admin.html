@@ -119,6 +119,18 @@
     </div>
   </div>
 
+  <div class="card">
+    <h2><span class="step">4</span>Limpar este aparelho</h2>
+    <p style="font-size:13px;line-height:1.6;color:var(--muted);margin:0 0 14px">
+      Apaga a configuração do portal <b>somente neste aparelho</b> — o desenho e a senha de
+      emparelhamento guardados aqui. Serve para refazer um teste do zero, ou se você esquecer
+      o desenho. Não alcança o celular da outra pessoa e não apaga conversa nenhuma
+      (elas nunca ficam gravadas).
+    </p>
+    <button id="limpar" class="ghost">Apagar a configuração deste aparelho</button>
+    <div id="limpaMsg" class="msg"></div>
+  </div>
+
   <div class="note warn">
     <b>Segurança.</b> Esta página não guarda nada, não envia nada para lugar nenhum e não tem
     acesso ao seu GitHub — ela só monta os arquivos dentro do seu próprio navegador.
@@ -274,6 +286,34 @@
     m.textContent="4 arquivos baixados. Agora é só subir no GitHub (passo 3).";
     $("lista").classList.remove("hidden");
   });
+
+  // ---- limpeza deste aparelho (duas etapas, para nao apagar sem querer) ----
+  (function(){
+    var b=$("limpar"), m=$("limpaMsg"), armado=false, t=null;
+    b.addEventListener("click",function(){
+      if(!armado){
+        armado=true;
+        b.textContent="Confirmar: apagar mesmo";
+        b.style.background="#b91c1c";
+        m.className="msg"; m.textContent="Toque de novo para confirmar. Isso não tem desfazer.";
+        clearTimeout(t);
+        t=setTimeout(function(){
+          armado=false; b.textContent="Apagar a configuração deste aparelho";
+          b.style.background=""; m.textContent="";
+        },6000);
+        return;
+      }
+      clearTimeout(t); armado=false;
+      var ok=true;
+      try{ localStorage.removeItem("pc_cfg_v1"); localStorage.removeItem("pc_device_v1"); }
+      catch(e){ ok=false; }
+      b.textContent="Apagar a configuração deste aparelho"; b.style.background="";
+      m.className=ok?"msg ok":"msg err";
+      m.textContent = ok
+        ? "Pronto. Ao abrir o portal neste aparelho, ele começa do zero."
+        : "Não consegui apagar neste navegador.";
+    });
+  })();
 
   desenhar();
 })();
