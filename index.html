@@ -245,6 +245,14 @@
         </div>
 
         <div class="menu hidden" id="menu">
+          <button id="canalRow" style="cursor:default">
+            <span class="swrow">
+              <span class="sl">Código do canal
+                <small>Tem que ser IGUAL nos dois aparelhos</small></span>
+              <span id="canalCod" style="font-family:ui-monospace,Consolas,monospace;
+                font-size:16px;font-weight:700;color:var(--logo-msg);letter-spacing:1px">------</span>
+            </span>
+          </button>
           <button id="swLock">
             <span class="swrow">
               <span class="sl">Encerrar ao sair da tela
@@ -578,6 +586,8 @@ document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
     $("callAccept").addEventListener("click",acceptCall);
     $("callEnd").addEventListener("click",endCall);
     $("menuBtn").addEventListener("click",function(){ $("menu").classList.toggle("hidden"); });
+    // so exibe o codigo; nao fecha o menu ao tocar nele
+    $("canalRow").addEventListener("click",function(e){ e.stopPropagation(); });
     document.addEventListener("click",function(e){
       if(!$("menu").classList.contains("hidden") && !$("menu").contains(e.target) && e.target!==$("menuBtn")){
         $("menu").classList.add("hidden"); }
@@ -773,6 +783,9 @@ document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
     wireOnce(); paintSwitch();
     $("messages").innerHTML=""; setMsg(false); show("inside");
     addSystem("Conversa não fica gravada no aparelho.");
+    // codigo do canal: calculo de mao unica a partir da senha. Serve para
+    // conferir se os dois aparelhos usaram a MESMA senha. Nao revela a senha.
+    try{ $("canalCod").textContent=(await sha(pair+":canal")).slice(0,6).toUpperCase(); }catch(e){}
     startNetwork(pair);
   }
 
