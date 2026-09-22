@@ -307,6 +307,11 @@
   </div>
   <audio id="remoteAudio" autoplay playsinline></audio>
 
+<!-- Firebase (só para presença: online, visto às, disponibilidade, chamou às).
+     As MENSAGENS não passam por aqui; continuam diretas e criptografadas. -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+
 <script>
 /* A identidade (nome + logomarca) e sempre buscada nova. Sem isto, o servidor
    guarda o config.js por 10 minutos e uma troca feita no admin demoraria
@@ -634,8 +639,65 @@
   }
   function sendHello(){ sendCtl({t:"hello", name:myName(), avail:myAvail(), ts:Date.now()}); }
 
+  // ---------- servidor de presença (Firebase) ----------
+  // Guarda SOMENTE o cartão de presença: nome, se está online, horário do
+  // último acesso, horário em que chamou, e a mensagem de disponibilidade.
+  // O CONTEÚDO das mensagens NUNCA passa por aqui — continua P2P/criptografado.
+  var FB_CFG={
+    apiKey:"AIzaSyAYkGkibjEBZEqzQHN4RY3p3nhmXQa7q2Q",
+    authDomain:"portal-interno-cd2a8.firebaseapp.com",
+    databaseURL:"https://portal-interno-cd2a8-default-rtdb.firebaseio.com",
+    projectId:"portal-interno-cd2a8",
+    storageBucket:"portal-interno-cd2a8.firebasestorage.app",
+    messagingSenderId:"93288022454",
+    appId:"1:93288022454:web:99e1ddfb77a26067b20117"
+  };
+  var fbApp=null, fbRoomRef=null, fbMeRef=null, fbClientId="", peerOnlineFB=false;
+
+  function fbClient(){
+    if(fbClientId) return fbClientId;
+    try{ fbClientId=localStorage.getItem("pc_fbid")||""; }catch(e){}
+    if(!fbClientId){
+      fbClientId="c"+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+      try{ localStorage.setItem("pc_fbid",fbClientId); }catch(e){}
+    }
+    return fbClientId;
+  }
+  async function fbInit(pair){
+    if(typeof firebase==="undefined") return;   // sem internet ou SDK não carregou
+    try{
+      if(!fbApp) fbApp=(firebase.apps&&firebase.apps.length)?firebase.app():firebase.initializeApp(FB_CFG);
+      var room=(await sha(pair+":presenca")).slice(0,32);
+      var db=firebase.database(), me=fbClient(), TS=firebase.database.ServerValue.TIMESTAMP;
+      fbRoomRef=db.ref("p/"+room);
+      fbMeRef=db.ref("p/"+room+"/"+me);
+      fbMeRef.update({ name:myName(), avail:myAvail(), online:true, lastSeen:TS });
+      fbMeRef.onDisconnect().update({ online:false, lastSeen:TS });
+      fbRoomRef.on("value",function(snap){
+        var v=snap.val()||{}, other=null;
+        for(var k in v){ if(k!==me){ other=v[k]; break; } }   // só há 2 aparelhos na sala
+        if(other){
+          peerOnlineFB=!!other.online;
+          if(other.name) peerName=other.name;
+          if(typeof other.avail==="string") peerAvail=other.avail;
+          if(other.lastSeen && other.lastSeen>peerLastSeen) peerLastSeen=other.lastSeen;
+          if(other.lastKnock && other.lastKnock>lastContact) lastContact=other.lastKnock;
+          savePeer(); updatePeerUI();
+        }
+      });
+    }catch(e){}
+  }
+  function fbKnock(){ try{ if(fbMeRef) fbMeRef.update({ lastKnock:firebase.database.ServerValue.TIMESTAMP }); }catch(e){} }
+  function fbAvail(){ try{ if(fbMeRef) fbMeRef.update({ avail:myAvail() }); }catch(e){} }
+  function fbStop(){
+    try{ if(fbRoomRef) fbRoomRef.off(); }catch(e){}
+    try{ if(fbMeRef){ fbMeRef.onDisconnect().cancel();
+      fbMeRef.update({ online:false, lastSeen:firebase.database.ServerValue.TIMESTAMP }); } }catch(e){}
+    fbRoomRef=null; fbMeRef=null; peerOnlineFB=false;
+  }
+
   function updatePeerUI(){
-    var online=!!(conn && conn.open);
+    var online=!!(conn && conn.open) || peerOnlineFB;
     var nm=peerName||"Contato", st=$("connState");
     if(online){ st.innerHTML='<span class="on">'+nm+' · online</span>'; }
     else { st.textContent = nm+" · offline"+(peerLastSeen?(" · visto "+fmtWhen(peerLastSeen)):""); }
@@ -678,6 +740,7 @@
   }
   async function wireSend(o){
     addBubble("me",o);
+    fbKnock();   // registra no cartão de presença que EU chamei agora (o outro vê "chamou às")
     if(!roomKey) return;
     try{ var p=await encryptObj(o); if(conn&&conn.open) conn.send(p); }catch(e){}
   }
@@ -764,6 +827,7 @@
       txt=String(txt).slice(0,60);
       var c=load(); if(c){ c.avail=txt; save(c); }
       sendHello(); // avisa o outro na hora, se estiver conectado
+      fbAvail();   // atualiza a disponibilidade no cartão de presença (mesmo offline)
     });
     $("qrBtn").addEventListener("click",showQR);
     $("reconnectBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); setConn("Reconectando..."); tryConnect(); });
@@ -942,6 +1006,7 @@
     if(retryTimer){ clearInterval(retryTimer); retryTimer=null; }
     if(hbTimer){ clearInterval(hbTimer); hbTimer=null; }
     if(uiTimer){ clearInterval(uiTimer); uiTimer=null; }
+    fbStop();
     try{ if(conn) conn.close(); }catch(e){} conn=null;
     try{ if(peer) peer.destroy(); }catch(e){} peer=null;
   }
@@ -990,6 +1055,7 @@
     loadPeer(); updatePeerUI();
     if(uiTimer) clearInterval(uiTimer);
     uiTimer=setInterval(updatePeerUI, 30000);   // atualiza o "visto às" com o tempo
+    fbInit(pair);   // liga o cartão de presença online (Firebase), sem tocar nas mensagens
     // codigo do canal: calculo de mao unica a partir da senha. Serve para
     // conferir se os dois aparelhos usaram a MESMA senha. Nao revela a senha.
     try{ $("canalCod").textContent=(await sha(pair+":canal")).slice(0,6).toUpperCase(); }catch(e){}
