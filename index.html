@@ -167,22 +167,38 @@
           </div>
           <input id="cfgLogoFile" type="file" accept="image/*" class="hidden">
         </div>
-        <div class="field">
-          <label>Senha de emparelhamento — a MESMA nos dois celulares</label>
-          <div class="help">
-            <b>Você está montando o sistema?</b> Toque em “Gerar uma senha forte”, guarde a senha
-            e mande para a outra pessoa.
-            <span class="sep"></span>
-            <b>Recebeu a senha de alguém?</b> Cole ela no campo abaixo.
+        <!-- PRIMEIRO APARELHO: cria o canal. Nenhuma senha aparece na tela. -->
+        <div id="modoNovo">
+          <button id="cfgNext">Criar um canal novo</button>
+          <div class="help" style="margin-top:12px">
+            Use isto no <b>primeiro</b> aparelho. Logo depois vai aparecer um código na tela —
+            você aponta a câmera do outro aparelho para ele e pronto.
           </div>
-          <input id="cfgPair" type="text" placeholder="Cole a senha aqui — ou gere uma abaixo" autocomplete="off" spellcheck="false">
-          <div class="row2">
-            <button type="button" id="cfgGen" class="ghost">Gerar uma senha forte</button>
-            <button type="button" id="cfgCopy" class="ghost hidden">Copiar</button>
-          </div>
+          <button type="button" id="modoConviteBtn" class="ghost"
+            style="margin-top:10px;font-size:13px;padding:11px">Recebi um convite de outro aparelho</button>
         </div>
-        <button id="cfgNext">Continuar</button>
+
+        <!-- SEGUNDO APARELHO, sem câmera: cola o convite à mão -->
+        <div id="modoConvite" class="hidden">
+          <label>Cole aqui o convite que você recebeu</label>
+          <input id="cfgPair" type="text" placeholder="Cole o convite" autocomplete="off" spellcheck="false">
+          <button id="cfgEntrar" style="margin-top:10px">Continuar</button>
+          <button type="button" id="modoNovoBtn" class="ghost"
+            style="margin-top:10px;font-size:13px;padding:11px">Voltar</button>
+        </div>
+
+        <!-- SEGUNDO APARELHO, veio pela câmera: nada a preencher -->
+        <div id="modoConvidado" class="hidden">
+          <div class="help" style="margin:0 0 14px">
+            <b>Convite recebido.</b> Este aparelho vai entrar no canal do outro.
+            Falta só criar o seu desenho de acesso.
+          </div>
+          <button id="cfgEntrarQR">Continuar</button>
+        </div>
+
         <div id="cfgMsg" class="msgline"></div>
+        <button type="button" id="cfgGen" class="hidden"></button>
+        <button type="button" id="cfgCopy" class="hidden"></button>
       </div>
 
       <div class="body hidden" id="setupStep2">
@@ -695,10 +711,9 @@ document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
   fillLogo($("setupLogo"),pendingLogo);
   if(pendingColors) applyColors(pendingColors);
   if(prefillPair){
-    $("cfgPair").value=prefillPair;
-    $("cfgCopy").classList.remove("hidden");
-    var pm=$("cfgMsg"); pm.className="msgline ok";
-    pm.textContent="Senha recebida do outro aparelho. É só continuar e criar o seu desenho.";
+    // chegou pela camera: nao mostra senha nenhuma, so pede o desenho
+    $("modoNovo").classList.add("hidden");
+    $("modoConvidado").classList.remove("hidden");
   }
   $("cfgPickLogo").addEventListener("click",function(){ $("cfgLogoFile").click(); });
   $("cfgLogoFile").addEventListener("change",function(){
@@ -712,46 +727,58 @@ document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
     pendingLogo=null; pendingColors=null; $("cfgLogoFile").value="";
     fillLogo($("setupLogo"),null); applyColors(DEF_COLORS); this.classList.add("hidden");
   });
-  // senha de emparelhamento forte, gerada pelo proprio aparelho
-  $("cfgGen").addEventListener("click",function(){
+  // ---------- entrada simplificada ----------
+  var criouCanal=false;
+
+  function gerarSenha(){
     var abc="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
     var a=new Uint8Array(24); crypto.getRandomValues(a);
     var s=""; for(var i=0;i<a.length;i++){ s+=abc[a[i]%abc.length]; if(i%6===5 && i<a.length-1) s+="-"; }
-    $("cfgPair").value=s;
-    $("cfgCopy").classList.remove("hidden");
-    var m=$("cfgMsg"); m.className="msgline ok";
-    m.textContent="Guarde esta senha e mande para a outra pessoa. Ela precisa digitar exatamente a mesma.";
-  });
-
-  // copiar a senha gerada
-  $("cfgCopy").addEventListener("click",function(){
-    var v=$("cfgPair").value, m=$("cfgMsg"), b=this;
-    if(!v) return;
-    function feito(){ b.textContent="Copiado"; m.className="msgline ok";
-      m.textContent="Senha copiada. Cole num lugar seguro antes de continuar.";
-      setTimeout(function(){ b.textContent="Copiar"; },2500); }
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(v).then(feito,function(){ manual(); });
-    } else { manual(); }
-    function manual(){
-      try{ $("cfgPair").select(); $("cfgPair").setSelectionRange(0,99999);
-        document.execCommand("copy"); feito(); }
-      catch(e){ m.className="msgline err"; m.textContent="Não consegui copiar. Selecione a senha e copie à mão."; }
-    }
-  });
-
-  $("cfgNext").addEventListener("click",function(){
-    var m=$("cfgMsg"); m.className="msgline";
-    if(!preName){ pendingName=$("cfgName").value.trim(); }
-    pendingPair=$("cfgPair").value.trim();
-    if(!pendingName){ m.className="msgline err"; m.textContent="Informe o nome da empresa."; return; }
-    if(pendingPair.length<12){ m.className="msgline err"; m.textContent="A senha de emparelhamento precisa de ao menos 12 caracteres. Use o botão para gerar uma forte."; return; }
+    return s;
+  }
+  function irParaDesenho(){
     firstPat=null;
     $("setupStep1").classList.add("hidden"); $("setupStep2").classList.remove("hidden");
     $("setupSub").textContent="Crie o seu desenho de acesso";
     $("sHint").textContent="Ligue pelo menos 4 pontos";
     $("sMsg").textContent="";
+  }
+  function nomeOk(){
+    var m=$("cfgMsg"); m.className="msgline"; m.textContent="";
+    if(!preName){ pendingName=$("cfgName").value.trim(); }
+    if(!pendingName){ m.className="msgline err"; m.textContent="Informe o nome da empresa."; return false; }
+    return true;
+  }
+
+  // PRIMEIRO aparelho: cria o canal. A senha nasce aqui e nunca aparece na tela.
+  $("cfgNext").addEventListener("click",function(){
+    if(!nomeOk()) return;
+    pendingPair=gerarSenha(); criouCanal=true; irParaDesenho();
   });
+
+  // SEGUNDO aparelho, veio pela camera: nao digita nada
+  $("cfgEntrarQR").addEventListener("click",function(){
+    if(!nomeOk()) return;
+    pendingPair=(prefillPair||"").trim();
+    if(pendingPair.length<12){ var m=$("cfgMsg"); m.className="msgline err"; m.textContent="Convite invalido. Leia o codigo de novo."; return; }
+    criouCanal=false; irParaDesenho();
+  });
+
+  // SEGUNDO aparelho, sem camera: cola o convite
+  $("cfgEntrar").addEventListener("click",function(){
+    if(!nomeOk()) return;
+    var m=$("cfgMsg"); pendingPair=$("cfgPair").value.trim();
+    if(pendingPair.length<12){ m.className="msgline err"; m.textContent="Convite incompleto. Cole o texto inteiro."; return; }
+    criouCanal=false; irParaDesenho();
+  });
+
+  $("modoConviteBtn").addEventListener("click",function(){
+    $("modoNovo").classList.add("hidden"); $("modoConvite").classList.remove("hidden"); $("cfgMsg").textContent="";
+  });
+  $("modoNovoBtn").addEventListener("click",function(){
+    $("modoConvite").classList.add("hidden"); $("modoNovo").classList.remove("hidden"); $("cfgMsg").textContent="";
+  });
+
   $("sBack").addEventListener("click",function(){
     $("setupStep2").classList.add("hidden"); $("setupStep1").classList.remove("hidden");
     $("setupSub").textContent="Primeiro acesso — defina os dados do sistema";
@@ -771,7 +798,15 @@ document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
       salt:salt,vault:vault,att:0,lockOnHide:true});
     if(!ok){ m.className="msgline err"; m.textContent="Não foi possível salvar (imagem muito grande?)."; return; }
     m.className="msgline ok"; m.textContent="Pronto!";
-    setTimeout(startLocked,400);
+    // entra direto (acabou de configurar, nao faz sentido pedir o desenho de novo)
+    var senha=pendingPair, novo=criouCanal;
+    setTimeout(function(){
+      startLocked();                       // pinta nome, logo e cores
+      enterSecure(senha).then(function(){
+        // quem criou o canal ve o codigo na hora, sem procurar menu
+        if(novo) setTimeout(showQR,700);
+      });
+    },400);
   });
 
   // ---------- identidade visual ----------
