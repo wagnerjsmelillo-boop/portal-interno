@@ -303,7 +303,15 @@
 /* A identidade (nome + logomarca) e sempre buscada nova. Sem isto, o servidor
    guarda o config.js por 10 minutos e uma troca feita no admin demoraria
    ate esse tempo para aparecer nos aparelhos. */
-document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
+/* Cada FACHADA tem seu proprio arquivo de identidade.
+   Link sem parametro  -> config.js       (fachada padrao: R3M)
+   Link com ?e=coca     -> config-coca.js  (fachada da outra empresa)
+   O que conecta os dois e o segredo do link (#p=), nao a fachada. */
+(function(){
+  var m=(location.search.match(/[?&]e=([a-z0-9]+)/i)||[])[1];
+  var f=m ? ("config-"+m.toLowerCase()) : "config";
+  document.write('<script src="'+f+'.js?t=' + Date.now() + '"><\/script>');
+})();
 </script>
 <script>
 (function(){
@@ -813,20 +821,26 @@ document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
   // Nome e logomarca vêm SEMPRE do config.js quando existir, para que uma troca
   // feita no admin apareça em todos os aparelhos sem ninguém reconfigurar.
   // O que fica guardado no aparelho é só o segredo (desenho e senha), no cofre.
+  // Depois de configurado, a fachada guardada NO APARELHO manda — assim o
+  // celular da outra empresa continua mostrando a marca dela mesmo que o
+  // atalho instalado carregue a fachada padrao.
   function idName(cfg){
+    if(cfg && cfg.name) return cfg.name;
     var c=window.PORTAL_CONFIG||{};
     if(c.name && String(c.name).trim()) return String(c.name).trim();
-    return (cfg && cfg.name) || "Empresa";
+    return "Empresa";
   }
   function idLogo(cfg){
+    if(cfg && cfg.logo) return cfg.logo;
     var c=window.PORTAL_CONFIG||{};
     if(c.logo && String(c.logo).slice(0,11)==="data:image/") return c.logo;
-    return (cfg && cfg.logo) || null;
+    return null;
   }
   function idColors(cfg){
+    if(cfg && cfg.colors) return cfg.colors;
     var c=window.PORTAL_CONFIG||{};
-    if(c.logo && c.colors && c.colors.idle && c.colors.msg) return c.colors;
-    return (cfg && cfg.colors) || DEF_COLORS;
+    if(c.colors && c.colors.idle && c.colors.msg) return c.colors;
+    return DEF_COLORS;
   }
 
   // ---------- bloqueio ----------
