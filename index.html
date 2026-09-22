@@ -88,6 +88,11 @@
   .chat-head .logowrap{width:40px;height:40px;margin:0}
   .chat-head .logo{width:40px;height:40px;border-radius:11px}
   .chat-head .logo svg{width:20px;height:20px}
+  .st .on{color:#86efac}
+  .peerbar{font-size:12px;color:var(--muted);padding:8px 13px;border-bottom:1px solid var(--line);
+    background:var(--panel2);line-height:1.45}
+  .peerbar b{color:#e2e8f0}
+  .peerbar .call{color:#fbbf24}
   .chat-title{flex:1;min-width:0}
   .chat-title .nm{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .chat-title .st{font-size:11px;color:var(--muted)}
@@ -256,6 +261,8 @@
           <button class="iconbtn" id="menuBtn">&#8942;</button>
         </div>
 
+        <div class="peerbar hidden" id="peerbar"></div>
+
         <div class="callbar hidden" id="callBar">
           <div class="ct"><b id="callTitle">Chamada</b><span id="callSub"></span></div>
           <button id="callAccept" class="btn-ok hidden">Atender</button>
@@ -288,6 +295,7 @@
               <span class="sw" id="swLockUI"><i></i></span>
             </span>
           </button>
+          <button id="availBtn">Minha disponibilidade</button>
           <button id="qrBtn">Conectar outro aparelho</button>
           <button id="reconnectBtn">Reconectar</button>
           <button id="reconfigBtn">Reconfigurar tudo</button>
@@ -599,11 +607,73 @@
       if(myId===idB) tryConnect();
     },5000);
   }
+  // ---------- presença: quem está online, horário e disponibilidade ----------
+  // Nada disso é o conteúdo das mensagens (que continua P2P/criptografado).
+  // É só um "cartão de presença" trocado ao vivo e guardado localmente.
+  var peerName="", peerAvail="", peerLastSeen=0, lastContact=0, hbTimer=null, uiTimer=null;
+
+  function loadPeer(){
+    try{ var p=JSON.parse(localStorage.getItem("pc_peer")||"null"); if(p){
+      peerName=p.name||""; peerAvail=p.avail||""; peerLastSeen=p.lastSeen||0; lastContact=p.lastMsg||0; } }catch(e){}
+  }
+  function savePeer(){
+    try{ localStorage.setItem("pc_peer", JSON.stringify({name:peerName,avail:peerAvail,lastSeen:peerLastSeen,lastMsg:lastContact})); }catch(e){}
+  }
+  function fmtHM(t){ var d=new Date(t); return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2); }
+  function fmtWhen(t){
+    if(!t) return "";
+    var d=new Date(t), h=new Date(); var hoje=d.toDateString()===h.toDateString();
+    return (hoje?"hoje":("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2))+" "+fmtHM(t);
+  }
+  function myName(){ var c=load(); return idName(c)||"Empresa"; }
+  function myAvail(){ var c=load(); return (c&&c.avail)||""; }
+
+  async function sendCtl(o){
+    if(!roomKey || !conn || !conn.open) return;
+    try{ conn.send(await encryptObj(o)); }catch(e){}
+  }
+  function sendHello(){ sendCtl({t:"hello", name:myName(), avail:myAvail(), ts:Date.now()}); }
+
+  function updatePeerUI(){
+    var online=!!(conn && conn.open);
+    var nm=peerName||"Contato", st=$("connState");
+    if(online){ st.innerHTML='<span class="on">'+nm+' · online</span>'; }
+    else { st.textContent = nm+" · offline"+(peerLastSeen?(" · visto "+fmtWhen(peerLastSeen)):""); }
+    var bar=$("peerbar"), parts=[];
+    if(peerAvail) parts.push("<b>Disponível:</b> "+peerAvail.replace(/[<>]/g,""));
+    if(lastContact) parts.push('<span class="call">chamou às '+fmtHM(lastContact)+'</span>');
+    if(parts.length){ bar.innerHTML=parts.join("&nbsp;&nbsp;·&nbsp;&nbsp;"); bar.classList.remove("hidden"); }
+    else bar.classList.add("hidden");
+  }
+  function onPeerData(o){
+    if(o && (o.t==="hello" || o.t==="ping")){
+      peerLastSeen=Date.now();
+      if(o.name) peerName=o.name;
+      if(typeof o.avail==="string") peerAvail=o.avail;
+      if(o.t==="hello") sendCtl({t:"ping", ts:Date.now()}); // responde para o outro saber que estou aqui
+      savePeer(); updatePeerUI(); return true;
+    }
+    return false;
+  }
+
   function bindConn(c){
     conn=c;
-    c.on("open",function(){ setConn("Conectado"); addSystem("Canal seguro estabelecido."); });
-    c.on("data",async function(p){ if(!roomKey) return; try{ onIncoming(await decryptObj(p)); }catch(e){} });
-    c.on("close",function(){ conn=null; setConn("Aguardando o outro aparelho"); });
+    c.on("open",function(){
+      setConn("Conectado"); addSystem("Canal seguro estabelecido.");
+      peerLastSeen=Date.now(); savePeer(); updatePeerUI();
+      sendHello();
+      if(hbTimer) clearInterval(hbTimer);
+      hbTimer=setInterval(function(){ if(conn&&conn.open) sendCtl({t:"ping",ts:Date.now()}); },15000);
+    });
+    c.on("data",async function(p){
+      if(!roomKey) return;
+      try{ var o=await decryptObj(p); if(onPeerData(o)) return;
+        lastContact=Date.now(); savePeer(); onIncoming(o); }catch(e){}
+    });
+    c.on("close",function(){
+      conn=null; if(hbTimer){ clearInterval(hbTimer); hbTimer=null; }
+      peerLastSeen=Date.now(); savePeer(); updatePeerUI();
+    });
     c.on("error",function(){});
   }
   async function wireSend(o){
@@ -685,6 +755,15 @@
       e.stopPropagation();
       lockOnHide=!lockOnHide; paintSwitch();
       var c=load(); if(c){ c.lockOnHide=lockOnHide; save(c); }
+    });
+    $("availBtn").addEventListener("click",function(){
+      $("menu").classList.add("hidden");
+      var atual=myAvail();
+      var txt=window.prompt("Escreva quando você costuma ficar disponível (a outra pessoa vê isto):", atual||"");
+      if(txt===null) return;
+      txt=String(txt).slice(0,60);
+      var c=load(); if(c){ c.avail=txt; save(c); }
+      sendHello(); // avisa o outro na hora, se estiver conectado
     });
     $("qrBtn").addEventListener("click",showQR);
     $("reconnectBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); setConn("Reconectando..."); tryConnect(); });
@@ -861,6 +940,8 @@
   function closeSession(){
     endCall(); roomKey=null;
     if(retryTimer){ clearInterval(retryTimer); retryTimer=null; }
+    if(hbTimer){ clearInterval(hbTimer); hbTimer=null; }
+    if(uiTimer){ clearInterval(uiTimer); uiTimer=null; }
     try{ if(conn) conn.close(); }catch(e){} conn=null;
     try{ if(peer) peer.destroy(); }catch(e){} peer=null;
   }
@@ -905,6 +986,10 @@
     wireOnce(); paintSwitch();
     $("messages").innerHTML=""; setMsg(false); show("inside");
     addSystem("Conversa não fica gravada no aparelho.");
+    // mostra o último cartão de presença conhecido (antes mesmo de conectar)
+    loadPeer(); updatePeerUI();
+    if(uiTimer) clearInterval(uiTimer);
+    uiTimer=setInterval(updatePeerUI, 30000);   // atualiza o "visto às" com o tempo
     // codigo do canal: calculo de mao unica a partir da senha. Serve para
     // conferir se os dois aparelhos usaram a MESMA senha. Nao revela a senha.
     try{ $("canalCod").textContent=(await sha(pair+":canal")).slice(0,6).toUpperCase(); }catch(e){}
