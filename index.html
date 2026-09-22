@@ -121,6 +121,18 @@
   .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);display:flex;align-items:center;
     justify-content:center;z-index:50;padding:20px}
   .lightbox img{max-width:100%;max-height:100%;border-radius:8px}
+  .qrbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:60;display:flex;
+    align-items:center;justify-content:center;padding:20px}
+  .qrcard{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:24px;max-width:360px;width:100%;text-align:center}
+  .qrcard h3{margin:0 0 6px;font-size:17px}
+  .qrcard p{margin:0 0 16px;font-size:12.5px;line-height:1.6;color:var(--muted)}
+  .qrimg{background:#fff;padding:14px;border-radius:12px;display:inline-block;line-height:0}
+  .qrimg table{border-collapse:collapse;border-spacing:0}
+  .qrimg td{width:5px;height:5px;padding:0}
+  .qrwarn{margin-top:14px;font-size:11.5px;line-height:1.55;color:#fde68a;
+    background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.35);
+    border-radius:9px;padding:10px 12px;text-align:left}
   .callbar{display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--panel2);
     border-bottom:1px solid var(--line);font-size:13px}
   .callbar .ct{flex:1;min-width:0}
@@ -260,6 +272,7 @@
               <span class="sw" id="swLockUI"><i></i></span>
             </span>
           </button>
+          <button id="qrBtn">Conectar outro aparelho</button>
           <button id="reconnectBtn">Reconectar</button>
           <button id="reconfigBtn">Reconfigurar tudo</button>
           <button id="logoutBtn">Sair (bloquear agora)</button>
@@ -294,6 +307,21 @@ document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
   var retryTimer=null, wired=false;
   var localStream=null, currentCall=null, pendingCall=null, callTimer=null, callStart=0;
   var lockOnHide=true, skipHideOnce=false;
+  var currentPair=null;   // senha em memoria, so enquanto a sessao esta aberta
+
+  // Senha recebida por leitura do codigo na tela do outro aparelho.
+  // Vem no pedaco do endereco depois do "#", que NAO e enviado ao servidor.
+  // E apagada do endereco imediatamente, para nao ficar no historico.
+  var prefillPair=null;
+  (function(){
+    try{
+      var h=location.hash||"";
+      if(h.indexOf("#p=")===0){
+        prefillPair=decodeURIComponent(h.slice(3));
+        history.replaceState(null,"",location.pathname+location.search);
+      }
+    }catch(e){ prefillPair=null; }
+  })();
 
   // ---------- logo / cores ----------
   function fillLogo(el,d){ if(d){ el.classList.add("hasimg"); el.innerHTML='<img alt="" src="'+d+'">'; }
@@ -479,6 +507,43 @@ document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
     for(var i=0;i<urls.length;i++){ try{ await loadScript(urls[i]); if(window.Peer) return true; }catch(e){} }
     return false;
   }
+  // ---------- código na tela para conectar o outro aparelho ----------
+  async function ensureQR(){
+    if(window.qrcode) return true;
+    var urls=["https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js",
+              "https://unpkg.com/qrcode-generator@1.4.4/qrcode.js",
+              "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"];
+    for(var i=0;i<urls.length;i++){
+      try{ await loadScript(urls[i]); if(window.qrcode) return true; }catch(e){}
+    }
+    return false;
+  }
+  async function showQR(){
+    $("menu").classList.add("hidden");
+    if(!currentPair) return;
+    var link=location.origin+location.pathname+"#p="+encodeURIComponent(currentPair);
+    var ok=await ensureQR(), desenho="";
+    if(ok){
+      try{ var qr=qrcode(0,"M"); qr.addData(link); qr.make();
+        desenho='<div class="qrimg">'+qr.createTableTag(4,6)+'</div>'; }
+      catch(e){ ok=false; }
+    }
+    if(!ok){ desenho='<p style="color:#fca5a5">Não consegui montar o código agora. Tente de novo com internet.</p>'; }
+    var box=document.createElement("div"); box.className="qrbox";
+    box.innerHTML='<div class="qrcard">'+
+      '<h3>Conectar o outro aparelho</h3>'+
+      '<p>No outro celular, abra a <b>câmera</b> e aponte para este código. '+
+      'O link abre já com a senha preenchida — lá basta criar o desenho.</p>'+
+      desenho+
+      '<div class="qrwarn"><b>Mostre este código só para quem vai usar o aparelho.</b> '+
+      'Quem fotografar esta tela consegue entrar na conversa.</div>'+
+      '<button class="ghost" style="margin-top:16px">Fechar</button></div>';
+    box.addEventListener("click",function(e){
+      if(e.target===box || e.target.tagName==="BUTTON"){ try{ document.body.removeChild(box); }catch(err){} }
+    });
+    document.body.appendChild(box);
+  }
+
   async function startNetwork(pair){
     setConn("Conectando...");
     if(!await ensurePeer()){ setConn("Sem conexão com a rede"); return; }
@@ -597,6 +662,7 @@ document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
       lockOnHide=!lockOnHide; paintSwitch();
       var c=load(); if(c){ c.lockOnHide=lockOnHide; save(c); }
     });
+    $("qrBtn").addEventListener("click",showQR);
     $("reconnectBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); setConn("Reconectando..."); tryConnect(); });
     $("reconfigBtn").addEventListener("click",function(){ wipe(); location.reload(); });
     $("logoutBtn").addEventListener("click",function(){ lockNow(); });
@@ -628,6 +694,12 @@ document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
   // ---------- configuração ----------
   fillLogo($("setupLogo"),pendingLogo);
   if(pendingColors) applyColors(pendingColors);
+  if(prefillPair){
+    $("cfgPair").value=prefillPair;
+    $("cfgCopy").classList.remove("hidden");
+    var pm=$("cfgMsg"); pm.className="msgline ok";
+    pm.textContent="Senha recebida do outro aparelho. É só continuar e criar o seu desenho.";
+  }
   $("cfgPickLogo").addEventListener("click",function(){ $("cfgLogoFile").click(); });
   $("cfgLogoFile").addEventListener("change",function(){
     var f=this.files&&this.files[0]; if(!f) return;
@@ -779,6 +851,7 @@ document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
   });
 
   async function enterSecure(pair){
+    currentPair=pair;
     roomKey=await deriveRoomKey(pair);
     wireOnce(); paintSwitch();
     $("messages").innerHTML=""; setMsg(false); show("inside");
