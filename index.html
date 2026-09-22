@@ -912,6 +912,9 @@ document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');
   // ---------- início ----------
   (function(){
     if(!cryptoOK){ document.body.innerHTML="<div style='color:#fca5a5;font:14px sans-serif;text-align:center;padding:40px'>Este aplicativo precisa de um endereço seguro (https).</div>"; return; }
+    // Se veio um convite pela câmera, este aparelho vai ENTRAR num canal novo.
+    // Apaga sozinho qualquer configuração antiga — o usuário não precisa "limpar".
+    if(prefillPair){ wipe(); applyColors(pendingColors||DEF_COLORS); show("setup"); return; }
     var cfg=load();
     if(cfg && cfg.v===CFG_VERSION){ startLocked(); }
     else { if(cfg) wipe(); applyColors(DEF_COLORS); show("setup"); }
