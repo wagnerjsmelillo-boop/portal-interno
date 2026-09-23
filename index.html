@@ -295,6 +295,13 @@
               <span class="sw" id="swLockUI"><i></i></span>
             </span>
           </button>
+          <button id="wakeBtn">
+            <span class="swrow">
+              <span class="sl">Manter tela ligada
+                <small>Enquanto o app estiver aberto, a tela não apaga sozinha</small></span>
+              <span class="sw" id="wakeUI"><i></i></span>
+            </span>
+          </button>
           <button id="availBtn">Minha disponibilidade</button>
           <button id="qrBtn">Conectar outro aparelho</button>
           <button id="reconnectBtn">Reconectar</button>
@@ -344,6 +351,7 @@
   var retryTimer=null, wired=false;
   var localStream=null, currentCall=null, pendingCall=null, callTimer=null, callStart=0;
   var lockOnHide=true, skipHideOnce=false;
+  var keepAwake=false, wakeSentinel=null;   // manter a tela ligada enquanto o app estiver aberto
   var currentPair=null;   // senha em memoria, so enquanto a sessao esta aberta
 
   // Senha recebida por leitura do codigo na tela do outro aparelho.
@@ -794,6 +802,25 @@
   function sendText(){ var t=$("msgInput").value.trim(); if(!t) return;
     wireSend({type:"text",text:t,t:Date.now()}); $("msgInput").value=""; }
   function paintSwitch(){ $("swLockUI").classList.toggle("on", !!lockOnHide); }
+  function paintWake(){ $("wakeUI").classList.toggle("on", !!keepAwake); }
+
+  // ---------- manter a tela ligada (Wake Lock) ----------
+  // O celular sozinho libera o "wake lock" quando o app sai da tela; por isso,
+  // sempre que o app volta a aparecer, pedimos de novo se a opção estiver ligada.
+  var wakeSupported = ("wakeLock" in navigator);
+  async function acquireWake(){
+    if(!wakeSupported || !keepAwake) return;
+    if(document.hidden || !insideVisible()) return;
+    try{
+      wakeSentinel = await navigator.wakeLock.request("screen");
+      wakeSentinel.addEventListener("release", function(){ wakeSentinel=null; });
+    }catch(e){ wakeSentinel=null; }
+  }
+  async function releaseWake(){
+    try{ if(wakeSentinel){ await wakeSentinel.release(); } }catch(e){}
+    wakeSentinel=null;
+  }
+  function applyWake(){ if(keepAwake) acquireWake(); else releaseWake(); }
   function wireOnce(){
     if(wired) return; wired=true;
     $("sendBtn").addEventListener("click",sendText);
@@ -819,6 +846,14 @@
       lockOnHide=!lockOnHide; paintSwitch();
       var c=load(); if(c){ c.lockOnHide=lockOnHide; save(c); }
     });
+    $("wakeBtn").addEventListener("click",function(e){
+      e.stopPropagation();
+      if(!wakeSupported){ keepAwake=false; paintWake();
+        addSystem("Este aparelho não permite manter a tela ligada."); return; }
+      keepAwake=!keepAwake; paintWake();
+      var c=load(); if(c){ c.keepAwake=keepAwake; save(c); }
+      applyWake();
+    });
     $("availBtn").addEventListener("click",function(){
       $("menu").classList.add("hidden");
       var atual=myAvail();
@@ -838,7 +873,7 @@
       if(document.hidden){
         if(skipHideOnce){ skipHideOnce=false; return; }
         if(lockOnHide && insideVisible() && !currentCall){ lockNow(); }
-      } else { if(insideVisible()) setMsg(false); }
+      } else { if(insideVisible()){ setMsg(false); applyWake(); } }
     });
   }
 
@@ -997,6 +1032,7 @@
     $("chatCompany").textContent=nm;
     applyColors(idColors(cfg)); setMsg(false);
     lockOnHide=(cfg.lockOnHide!==false); paintSwitch();
+    keepAwake=(cfg.keepAwake===true); paintWake();
     $("secretArea").classList.add("hidden"); $("uMsg").textContent="";
     show("lock");
   }
@@ -1006,7 +1042,7 @@
     if(retryTimer){ clearInterval(retryTimer); retryTimer=null; }
     if(hbTimer){ clearInterval(hbTimer); hbTimer=null; }
     if(uiTimer){ clearInterval(uiTimer); uiTimer=null; }
-    fbStop();
+    fbStop(); releaseWake();
     try{ if(conn) conn.close(); }catch(e){} conn=null;
     try{ if(peer) peer.destroy(); }catch(e){} peer=null;
   }
@@ -1048,7 +1084,7 @@
   async function enterSecure(pair){
     currentPair=pair;
     roomKey=await deriveRoomKey(pair);
-    wireOnce(); paintSwitch();
+    wireOnce(); paintSwitch(); paintWake(); applyWake();
     $("messages").innerHTML=""; setMsg(false); show("inside");
     addSystem("Conversa não fica gravada no aparelho.");
     // mostra o último cartão de presença conhecido (antes mesmo de conectar)
