@@ -83,11 +83,17 @@
   .citem{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--panel2);
     border:1px solid var(--line);border-radius:12px;cursor:pointer;text-align:left;color:var(--txt);
     width:100%;margin:0;font-weight:500}
-  .citem .av{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--brand),#0ea5e9);
+  .citem .av{position:relative;width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--brand),#0ea5e9);
     display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex:0 0 auto;font-size:16px}
+  .cdot{position:absolute;right:-3px;bottom:-3px;width:12px;height:12px;border-radius:50%;
+    background:#22c55e;border:2px solid var(--panel2)}
+  .cdot.new{background:#fbbf24}
   .citem .cn{flex:1;min-width:0}
   .citem .cn b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .citem .cn small{color:var(--muted);font-size:12px;font-weight:400}
+  .citem .copts{width:auto;background:transparent;color:var(--muted);font-size:20px;line-height:1;
+    padding:4px 8px;margin:0;flex:0 0 auto;border-radius:8px}
+  .citem .copts:active{background:var(--line)}
   .cempty{color:var(--muted);font-size:13px;text-align:center;padding:18px 6px;line-height:1.7}
   .invlink{width:100%;padding:11px;border-radius:9px;border:1px solid var(--line);
     background:#0b1220;color:var(--txt);font-size:12px;margin-top:4px}
@@ -473,23 +479,94 @@
     if(autoOpen){ openContact(c.id); } else { showContacts(); }
     return c;
   }
-  function openContact(id){ var c=contactById(id); if(!c) return; currentContactId=id; enterSecure(c.pair); }
+  function openContact(id){ var c=contactById(id); if(!c) return; markSeen(id); currentContactId=id; enterSecure(c.pair); }
 
-  function showContacts(){ renderContacts(); show("contacts"); }
+  function contactLabel(c){ return (c && (c.alias||c.name)) || "Novo contato"; }
+  function seenOf(c){ try{ return parseInt(localStorage.getItem("cv_seen_"+c.id)||"0",10)||0; }catch(e){ return 0; } }
+  function markSeen(id){ try{ localStorage.setItem("cv_seen_"+id, String(Date.now())); }catch(e){} }
+  function showContacts(){ renderContacts(); show("contacts"); contactsPresenceStart(); }
   function renderContacts(){
     var box=$("contactList"); if(!box) return; box.innerHTML="";
     if(!CONTACTS.length){ $("contactsEmpty").classList.remove("hidden"); return; }
     $("contactsEmpty").classList.add("hidden");
     CONTACTS.forEach(function(c){
-      var b=document.createElement("button"); b.className="citem";
-      var nm=c.name||"Novo contato";
+      var nm=contactLabel(c);
       var ini=(nm.trim().charAt(0)||"?").toUpperCase();
-      b.innerHTML='<span class="av"></span><span class="cn"><b></b><small></small></span>';
-      b.querySelector(".av").textContent=ini;
-      b.querySelector("b").textContent=nm;
-      b.querySelector("small").textContent=c.name?"Toque para conversar":"Aguardando a pessoa entrar";
-      b.addEventListener("click",function(){ openContact(c.id); });
-      box.appendChild(b);
+      var isNew = c._knock && c._knock > seenOf(c);
+      var row=document.createElement("div"); row.className="citem";
+      var av=document.createElement("span"); av.className="av"; av.textContent=ini;
+      if(isNew || c._online){ var dot=document.createElement("span"); dot.className="cdot"+(isNew?" new":""); av.appendChild(dot); }
+      var cn=document.createElement("span"); cn.className="cn";
+      var bnm=document.createElement("b"); bnm.textContent=nm;            // textContent: nome vem do outro, nunca vira HTML
+      var sm=document.createElement("small");
+      if(isNew){ sm.textContent="chamou "+fmtHM(c._knock); sm.style.color="#fbbf24"; sm.style.fontWeight="600"; }
+      else if(c._online){ sm.textContent="online"; sm.style.color="#86efac"; }
+      else { sm.textContent=(c.alias||c.name)?"Toque para conversar":"Aguardando a pessoa entrar"; }
+      cn.appendChild(bnm); cn.appendChild(sm);
+      var opts=document.createElement("button"); opts.className="copts"; opts.type="button"; opts.innerHTML="&#8942;";
+      row.appendChild(av); row.appendChild(cn); row.appendChild(opts);
+      row.addEventListener("click",function(){ openContact(c.id); });
+      opts.addEventListener("click",function(e){ e.stopPropagation(); showContactOptions(c.id); });
+      box.appendChild(row);
+    });
+  }
+
+  // ---- presença na lista de contatos: mostra "online" e "te chamou" sem abrir a conversa ----
+  // Só LÊ o cartão de presença (não escreve nada). As mensagens continuam P2P/criptografadas.
+  var cListeners=[];
+  function contactsPresenceStop(){ cListeners.forEach(function(r){ try{ r.off(); }catch(e){} }); cListeners=[]; }
+  function contactsPresenceStart(){
+    contactsPresenceStop();
+    if(typeof firebase==="undefined" || !CONTACTS.length) return;
+    try{ if(!fbApp) fbApp=(firebase.apps&&firebase.apps.length)?firebase.app():firebase.initializeApp(FB_CFG); }catch(e){ return; }
+    var db; try{ db=firebase.database(); }catch(e){ return; }
+    var me=fbClient();
+    CONTACTS.forEach(function(c){
+      sha(c.pair+":presenca").then(function(room){
+        var ref=db.ref("p/"+room.slice(0,32)); cListeners.push(ref);
+        ref.on("value",function(snap){
+          var v=snap.val()||{}, other=null;
+          for(var k in v){ if(k!==me){ other=v[k]; break; } }
+          if(other){
+            c._online=!!other.online;
+            if(other.lastKnock) c._knock=other.lastKnock;
+            if(other.name && !c.name){ c.name=other.name; saveContacts(); }
+          } else { c._online=false; }
+          if(contactsVisible()) renderContacts();
+        });
+      }).catch(function(){});
+    });
+  }
+  function showContactOptions(id){
+    var c=contactById(id); if(!c) return;
+    var box=document.createElement("div"); box.className="qrbox";
+    box.innerHTML='<div class="qrcard">'+
+      '<h3 id="coName"></h3>'+
+      '<p>O que você quer fazer com este contato?</p>'+
+      '<button id="coRename">Renomear (apelido só seu)</button>'+
+      '<button id="coDelete" style="margin-top:8px;background:#b91c1c">Apagar contato</button>'+
+      '<button class="ghost" id="coCancel" style="margin-top:8px">Cancelar</button>'+
+    '</div>';
+    document.body.appendChild(box);
+    box.querySelector("#coName").textContent=contactLabel(c);   // nome via textContent
+    function close(){ try{ document.body.removeChild(box); }catch(e){} }
+    box.querySelector("#coCancel").addEventListener("click",close);
+    box.addEventListener("click",function(e){ if(e.target===box) close(); });
+    box.querySelector("#coRename").addEventListener("click",function(){
+      var atual=c.alias||c.name||"";
+      var t=window.prompt("Apelido para este contato (só você vê). Deixe em branco para usar o nome que a pessoa enviou:", atual);
+      if(t===null) return;
+      t=String(t).trim().slice(0,40);
+      c.alias = t || null;
+      saveContacts(); renderContacts(); close();
+      if(currentContactId===id && insideVisible()) updatePeerUI();
+    });
+    box.querySelector("#coDelete").addEventListener("click",function(){
+      if(!window.confirm("Apagar este contato? A conversa some deste aparelho. (A outra pessoa não é avisada.)")) return;
+      // tira da lista, apaga o segredo do cofre e o cartão de presença guardado
+      CONTACTS=CONTACTS.filter(function(x){ return x.id!==id; });
+      try{ localStorage.removeItem("cv_peer_"+id); }catch(e){}
+      saveContacts(); renderContacts(); close();
     });
   }
 
@@ -708,7 +785,7 @@
 
   function updatePeerUI(){
     var online=!!(conn && conn.open) || peerOnlineFB;
-    var c=findByPair(currentPair), nm=peerName||(c&&c.name)||"Novo contato";
+    var c=findByPair(currentPair), nm=(c&&c.alias)||peerName||(c&&c.name)||"Novo contato";
     $("chatCompany").textContent=nm;
     var st=$("connState");
     if(online){ st.innerHTML='<span class="on">online</span>'; }
@@ -832,7 +909,7 @@
     $("callBtn").addEventListener("click",startCall);
     $("callAccept").addEventListener("click",acceptCall);
     $("callEnd").addEventListener("click",endCall);
-    $("backBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); closeSession(); showContacts(); });
+    $("backBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); if(currentContactId) markSeen(currentContactId); closeSession(); showContacts(); });
     $("menuBtn").addEventListener("click",function(){ $("menu").classList.toggle("hidden"); });
     document.addEventListener("click",function(e){
       if(!$("menu").classList.contains("hidden") && !$("menu").contains(e.target) && e.target!==$("menuBtn")){
@@ -862,7 +939,7 @@
     });
     $("inviteThisBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); if(currentPair) showInvite(currentPair); });
     $("reconnectBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); setConn("Reconectando..."); tryConnect(); });
-    $("backMenuBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); closeSession(); showContacts(); });
+    $("backMenuBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); if(currentContactId) markSeen(currentContactId); closeSession(); showContacts(); });
     $("logoutBtn").addEventListener("click",function(){ lockNow(); });
     window.addEventListener("focus",function(){ if(insideVisible()) setMsg(false); });
     document.addEventListener("visibilitychange",function(){
@@ -998,7 +1075,7 @@
     if(retryTimer){ clearInterval(retryTimer); retryTimer=null; }
     if(hbTimer){ clearInterval(hbTimer); hbTimer=null; }
     if(uiTimer){ clearInterval(uiTimer); uiTimer=null; }
-    fbStop(); releaseWake();
+    fbStop(); releaseWake(); contactsPresenceStop();
     try{ if(conn) conn.close(); }catch(e){} conn=null;
     try{ if(peer) peer.destroy(); }catch(e){} peer=null;
   }
@@ -1040,13 +1117,14 @@
   });
 
   async function enterSecure(pair){
+    contactsPresenceStop();   // sai da escuta da lista; a conversa usa a sua própria presença
     currentPair=pair;
     var c=findByPair(pair); if(c) currentContactId=c.id;
     roomKey=await deriveRoomKey(pair);
     wireOnce(); paintSwitch(); paintWake(); applyWake();
     peerName="";peerAvail="";peerLastSeen=0;lastContact=0;peerOnlineFB=false;
     loadPeer();
-    $("chatCompany").textContent=(c&&c.name)||peerName||"Novo contato";
+    $("chatCompany").textContent=(c&&(c.alias||c.name))||peerName||"Novo contato";
     $("messages").innerHTML=""; setMsg(false); show("inside");
     addSystem("Conversa não fica gravada no aparelho.");
     updatePeerUI();
