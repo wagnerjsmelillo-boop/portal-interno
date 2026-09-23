@@ -55,7 +55,7 @@
   .ghost{background:#334155}
   .foot{padding:14px 26px 22px;text-align:center;color:#5b6b82;font-size:11px;border-top:1px solid var(--line)}
   .foot span{cursor:pointer}
-  .hidden{display:none}
+  .hidden{display:none !important}
   .msgline{font-size:13px;margin-top:10px;text-align:center;min-height:16px}
   .msgline.err{color:#fca5a5}
   .msgline.ok{color:#86efac}
@@ -66,7 +66,6 @@
     border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin:0 0 10px}
   .help b{color:var(--txt)}
 
-  /* ---- desenho (padrão) ---- */
   .patwrap{position:relative;width:250px;height:250px;margin:8px auto 0;touch-action:none;user-select:none}
   .patgrid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr)}
   .patnode{display:flex;align-items:center;justify-content:center}
@@ -78,7 +77,6 @@
     stroke-linecap:round;stroke-linejoin:round;opacity:.85}
   .pathint{text-align:center;color:var(--muted);font-size:12px;margin-top:4px}
 
-  /* ---- contatos ---- */
   .clist{display:flex;flex-direction:column;gap:8px}
   .citem{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--panel2);
     border:1px solid var(--line);border-radius:12px;cursor:pointer;text-align:left;color:var(--txt);
@@ -98,7 +96,6 @@
   .invlink{width:100%;padding:11px;border-radius:9px;border:1px solid var(--line);
     background:#0b1220;color:var(--txt);font-size:12px;margin-top:4px}
 
-  /* ---- mensagens ---- */
   .chat{display:flex;flex-direction:column;height:80vh;max-height:660px;position:relative}
   .chat-head{display:flex;align-items:center;gap:8px;padding:12px 13px;border-bottom:1px solid var(--line)}
   .chat-head .logowrap{width:40px;height:40px;margin:0}
@@ -174,7 +171,6 @@
         <div class="company">Criar seu acesso</div>
         <div class="sub" id="setupSub">Primeiro acesso — defina seu nome</div>
       </div>
-
       <div class="body" id="setupStep1">
         <div class="help hidden" id="conviteAviso"><b>Você recebeu um convite.</b>
           Crie seu acesso abaixo — a conversa já vai ficar salva nos seus contatos.</div>
@@ -193,7 +189,6 @@
         <button id="cfgContinue">Continuar</button>
         <div id="cfgMsg" class="msgline"></div>
       </div>
-
       <div class="body hidden" id="setupStep2">
         <div class="patwrap">
           <svg class="patlines" id="sLines"></svg>
@@ -203,7 +198,6 @@
         <div id="sMsg" class="msgline"></div>
         <button id="sBack" class="ghost">Voltar</button>
       </div>
-
       <div class="foot">O desenho é só deste aparelho e não sai daqui.</div>
     </div>
 
@@ -234,7 +228,7 @@
       <div class="foot" id="lockFoot">© <span id="yr"></span> — Uso interno. Todos os direitos reservados.</div>
     </div>
 
-    <!-- ===== CONTATOS (suas conversas) ===== -->
+    <!-- ===== CONTATOS ===== -->
     <div id="contacts" class="hidden">
       <div class="top" style="padding-bottom:2px">
         <div class="logowrap"><div class="logo" id="meLogo"></div></div>
@@ -273,15 +267,12 @@
           </button>
           <button class="iconbtn" id="menuBtn">&#8942;</button>
         </div>
-
         <div class="peerbar hidden" id="peerbar"></div>
-
         <div class="callbar hidden" id="callBar">
           <div class="ct"><b id="callTitle">Chamada</b><span id="callSub"></span></div>
           <button id="callAccept" class="btn-ok hidden">Atender</button>
           <button id="callEnd" class="btn-no">Encerrar</button>
         </div>
-
         <div class="messages" id="messages"></div>
         <div class="composer">
           <button class="attach" id="attachBtn" title="Enviar foto">
@@ -291,7 +282,6 @@
           <button class="cbtn" id="sendBtn">Enviar</button>
           <input id="photoFile" type="file" accept="image/*" class="hidden">
         </div>
-
         <div class="menu hidden" id="menu">
           <button id="swLock">
             <span class="swrow">
@@ -317,10 +307,19 @@
     </div>
 
   </div>
+
+  <!-- chamada recebida de um contato que não está aberto -->
+  <div id="bgCall" class="qrbox hidden" style="align-items:flex-start">
+    <div class="qrcard" style="margin-top:44px">
+      <h3 id="bgCallName">Chamada recebida</h3>
+      <p>Alguém está te chamando agora.</p>
+      <button id="bgCallAccept" class="btn-ok" style="background:var(--ok)">Atender</button>
+      <button id="bgCallReject" class="ghost" style="margin-top:8px">Recusar</button>
+    </div>
+  </div>
   <audio id="remoteAudio" autoplay playsinline></audio>
 
-<!-- Firebase (só para presença: online, visto às, disponibilidade, chamou às).
-     As MENSAGENS não passam por aqui; continuam diretas e criptografadas. -->
+<!-- Firebase (só presença: online, visto às, disponibilidade, chamou às). Mensagens NÃO passam por aqui. -->
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
 
@@ -328,9 +327,9 @@
 (function(){
   "use strict";
   var K={cfg:"cv_cfg_v1", dev:"cv_device_v1"};
-  var CFG_VERSION=1;
-  var MAX_TRIES=5, KDF_ROUNDS=200000;
+  var CFG_VERSION=1, MAX_TRIES=5, KDF_ROUNDS=200000;
   var DEF_COLORS={idle:"#1e3a8a", msg:"#38bdf8"};
+  var MAX_LIVE=15;                 // limite de conexões simultâneas
   var $=function(id){ return document.getElementById(id); };
   $("yr").textContent=new Date().getFullYear();
 
@@ -338,28 +337,55 @@
   var cryptoOK=!!(window.crypto && crypto.subtle);
   var pendingLogo=null, pendingColors=null, pendingName="", firstPat=null;
 
-  var roomKey=null, peer=null, conn=null, myId=null, otherId=null, idA=null, idB=null;
-  var retryTimer=null, wired=false;
+  var lockOnHide=true, skipHideOnce=false, keepAwake=false, wakeSentinel=null;
+  var CONTACTS=[], VK=null;
+  var CH={};                       // id do contato -> canal vivo
+  var activeId=null;               // conversa aberta na tela
+  var poolOn=false, wired=false, uiTimer=null;
   var localStream=null, currentCall=null, pendingCall=null, callTimer=null, callStart=0;
-  var lockOnHide=true, skipHideOnce=false;
-  var keepAwake=false, wakeSentinel=null;
-  var currentPair=null;
 
-  var CONTACTS=[], VK=null, currentContactId=null;   // lista de contatos e chave do cofre
+  // ---------- Servidores da VOZ (STUN + TURN) ----------
+  var ICE=[
+    {urls:"stun:stun.l.google.com:19302"},
+    {urls:"stun:stun1.l.google.com:19302"},
+    {urls:"turn:openrelay.metered.ca:80", username:"openrelayproject", credential:"openrelayproject"},
+    {urls:"turn:openrelay.metered.ca:443", username:"openrelayproject", credential:"openrelayproject"},
+    {urls:"turn:openrelay.metered.ca:443?transport=tcp", username:"openrelayproject", credential:"openrelayproject"}
+  ];
 
-  // Convite recebido pelo link (#p=...). Não é enviado ao servidor; é apagado do endereço.
+  var FB_CFG={
+    apiKey:"AIzaSyAYkGkibjEBZEqzQHN4RY3p3nhmXQa7q2Q",
+    authDomain:"portal-interno-cd2a8.firebaseapp.com",
+    databaseURL:"https://portal-interno-cd2a8-default-rtdb.firebaseio.com",
+    projectId:"portal-interno-cd2a8",
+    storageBucket:"portal-interno-cd2a8.firebasestorage.app",
+    messagingSenderId:"93288022454",
+    appId:"1:93288022454:web:99e1ddfb77a26067b20117"
+  };
+  var fbApp=null, fbClientId="";
+  function fbClient(){
+    if(fbClientId) return fbClientId;
+    try{ fbClientId=localStorage.getItem("cv_fbid")||""; }catch(e){}
+    if(!fbClientId){ fbClientId="c"+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+      try{ localStorage.setItem("cv_fbid",fbClientId); }catch(e){} }
+    return fbClientId;
+  }
+  function fbReady(){
+    if(typeof firebase==="undefined") return null;
+    try{ if(!fbApp) fbApp=(firebase.apps&&firebase.apps.length)?firebase.app():firebase.initializeApp(FB_CFG); return firebase.database(); }
+    catch(e){ return null; }
+  }
+
+  // convite pelo link (#p=...) — apagado do endereço, não vai ao servidor
   var prefillPair=null;
   (function(){
-    try{
-      var h=location.hash||"";
-      if(h.indexOf("#p=")===0){
-        prefillPair=decodeURIComponent(h.slice(3));
-        history.replaceState(null,"",location.pathname+location.search);
-      }
+    try{ var h=location.hash||"";
+      if(h.indexOf("#p=")===0){ prefillPair=decodeURIComponent(h.slice(3));
+        history.replaceState(null,"",location.pathname+location.search); }
     }catch(e){ prefillPair=null; }
   })();
 
-  // ---------- logo / cores ----------
+  // ---------- logo / cores / imagens ----------
   function fillLogo(el,d){ if(!el) return; if(d){ el.classList.add("hasimg"); el.innerHTML='<img alt="" src="'+d+'">'; }
     else { el.classList.remove("hasimg"); el.innerHTML=SHIELD; } }
   function applyColors(c){ c=c||DEF_COLORS; var r=document.documentElement.style;
@@ -375,8 +401,7 @@
     var b={},k,e2;
     for(var i=0;i<d.length;i+=4){
       var r=d[i],g=d[i+1],bl=d[i+2],a=d[i+3];
-      if(a<140) continue;
-      var mx=Math.max(r,g,bl),mn=Math.min(r,g,bl);
+      if(a<140) continue; var mx=Math.max(r,g,bl),mn=Math.min(r,g,bl);
       if(mx>238&&mn>238) continue; if(mx<28) continue;
       k=(r>>4)+"_"+(g>>4)+"_"+(bl>>4);
       e2=b[k]||(b[k]={n:0,r:0,g:0,b:0}); e2.n++; e2.r+=r; e2.g+=g; e2.b+=bl;
@@ -427,7 +452,7 @@
   function wipe(){ try{ localStorage.removeItem(K.cfg); }catch(e){} }
   function show(w){ ["setup","lock","inside","contacts"].forEach(function(id){ $(id).classList.add("hidden"); }); $(w).classList.remove("hidden"); }
 
-  // ---------- cofre (desenho abre o cofre) ----------
+  // ---------- cofre (desenho) + criptografia por canal ----------
   async function keyFromPattern(pat,salt){
     var enc=new TextEncoder();
     var base=await crypto.subtle.importKey("raw",enc.encode(pat+"::"+deviceId()),"PBKDF2",false,["deriveKey"]);
@@ -450,57 +475,68 @@
     return crypto.subtle.deriveKey({name:"PBKDF2",salt:enc.encode("comunicador-sala-v1"),iterations:100000,hash:"SHA-256"},
       base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
   }
-  async function encryptObj(o){
+  async function encWith(key,o){
     var iv=crypto.getRandomValues(new Uint8Array(12));
-    var ct=await crypto.subtle.encrypt({name:"AES-GCM",iv:iv},roomKey,new TextEncoder().encode(JSON.stringify(o)));
+    var ct=await crypto.subtle.encrypt({name:"AES-GCM",iv:iv},key,new TextEncoder().encode(JSON.stringify(o)));
     return {iv:toHex(iv.buffer),ct:abToB64(ct)};
   }
-  async function decryptObj(p){
-    var pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:hexToU8(p.iv)},roomKey,b64ToU8(p.ct).buffer);
+  async function decWith(key,p){
+    var pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:hexToU8(p.iv)},key,b64ToU8(p.ct).buffer);
     return JSON.parse(new TextDecoder().decode(pt));
   }
 
-  // ---------- contatos (guardados no cofre) ----------
+  // ---------- contatos ----------
   function findByPair(p){ for(var i=0;i<CONTACTS.length;i++){ if(CONTACTS[i].pair===p) return CONTACTS[i]; } return null; }
   function contactById(id){ for(var i=0;i<CONTACTS.length;i++){ if(CONTACTS[i].id===id) return CONTACTS[i]; } return null; }
+  function contactLabel(c){ return (c && (c.alias||c.name)) || "Novo contato"; }
+  function seenOf(c){ try{ return parseInt(localStorage.getItem("cv_seen_"+c.id)||"0",10)||0; }catch(e){ return 0; } }
+  function markSeen(id){ try{ localStorage.setItem("cv_seen_"+id, String(Date.now())); }catch(e){} }
   async function saveContacts(){
     if(!VK) return; var cfg=load(); if(!cfg) return;
-    try{ cfg.vault=await sealWith(VK,{contacts:CONTACTS}); save(cfg); }catch(e){}
+    try{ cfg.vault=await sealWith(VK,{contacts:CONTACTS.map(function(c){ return {id:c.id,name:c.name,alias:c.alias,pair:c.pair,role:c.role,ts:c.ts}; })}); save(cfg); }catch(e){}
   }
-  function setContactName(pair,name){
-    var c=findByPair(pair);
-    if(c && name && c.name!==name){ c.name=name; saveContacts(); renderContacts(); }
+  function setContactNameById(id,name){
+    var c=contactById(id);
+    if(c && name && c.name!==name){ c.name=name; saveContacts(); if(contactsVisible()) renderContacts(); }
   }
-  async function addContactFromPair(pair,autoOpen){
+  async function addContactFromPair(pair,autoOpen,role){
     pair=(pair||"").trim(); if(pair.length<12) return null;
     var c=findByPair(pair);
-    if(!c){ c={id:rnd(8),name:"",pair:pair,ts:Date.now()}; CONTACTS.push(c); await saveContacts(); }
+    if(!c){ c={id:rnd(8),name:"",alias:null,pair:pair,role:role||"a",ts:Date.now()};
+      CONTACTS.push(c); await saveContacts(); if(poolOn) startChannel(c); }
     renderContacts();
     if(autoOpen){ openContact(c.id); } else { showContacts(); }
     return c;
   }
-  function openContact(id){ var c=contactById(id); if(!c) return; markSeen(id); currentContactId=id; enterSecure(c.pair); }
+  function openContact(id){
+    var c=contactById(id); if(!c) return;
+    markSeen(id);
+    if(!CH[id]){ startChannel(c).then(function(){ activateChannel(id); }); }
+    else { activateChannel(id); }
+  }
 
-  function contactLabel(c){ return (c && (c.alias||c.name)) || "Novo contato"; }
-  function seenOf(c){ try{ return parseInt(localStorage.getItem("cv_seen_"+c.id)||"0",10)||0; }catch(e){ return 0; } }
-  function markSeen(id){ try{ localStorage.setItem("cv_seen_"+id, String(Date.now())); }catch(e){} }
-  function showContacts(){ renderContacts(); show("contacts"); contactsPresenceStart(); }
+  function showContacts(){ activeId=null; renderContacts(); show("contacts"); }
   function renderContacts(){
     var box=$("contactList"); if(!box) return; box.innerHTML="";
     if(!CONTACTS.length){ $("contactsEmpty").classList.remove("hidden"); return; }
     $("contactsEmpty").classList.add("hidden");
     CONTACTS.forEach(function(c){
+      var k=CH[c.id];
+      var online = k && ((k.conn&&k.conn.open) || k.peerOnlineFB);
+      var unread = k && k.unread;
+      var knock = k && k.lastContact && k.lastContact>seenOf(c);
+      var isNew = unread || knock;
       var nm=contactLabel(c);
       var ini=(nm.trim().charAt(0)||"?").toUpperCase();
-      var isNew = c._knock && c._knock > seenOf(c);
       var row=document.createElement("div"); row.className="citem";
       var av=document.createElement("span"); av.className="av"; av.textContent=ini;
-      if(isNew || c._online){ var dot=document.createElement("span"); dot.className="cdot"+(isNew?" new":""); av.appendChild(dot); }
+      if(isNew || online){ var dot=document.createElement("span"); dot.className="cdot"+(isNew?" new":""); av.appendChild(dot); }
       var cn=document.createElement("span"); cn.className="cn";
-      var bnm=document.createElement("b"); bnm.textContent=nm;            // textContent: nome vem do outro, nunca vira HTML
+      var bnm=document.createElement("b"); bnm.textContent=nm;
       var sm=document.createElement("small");
-      if(isNew){ sm.textContent="chamou "+fmtHM(c._knock); sm.style.color="#fbbf24"; sm.style.fontWeight="600"; }
-      else if(c._online){ sm.textContent="online"; sm.style.color="#86efac"; }
+      if(unread){ sm.textContent="nova mensagem"; sm.style.color="#fbbf24"; sm.style.fontWeight="600"; }
+      else if(knock){ sm.textContent="chamou "+fmtHM(k.lastContact); sm.style.color="#fbbf24"; sm.style.fontWeight="600"; }
+      else if(online){ sm.textContent="online"; sm.style.color="#86efac"; }
       else { sm.textContent=(c.alias||c.name)?"Toque para conversar":"Aguardando a pessoa entrar"; }
       cn.appendChild(bnm); cn.appendChild(sm);
       var opts=document.createElement("button"); opts.className="copts"; opts.type="button"; opts.innerHTML="&#8942;";
@@ -510,351 +546,314 @@
       box.appendChild(row);
     });
   }
-
-  // ---- presença na lista de contatos: mostra "online" e "te chamou" sem abrir a conversa ----
-  // Só LÊ o cartão de presença (não escreve nada). As mensagens continuam P2P/criptografadas.
-  var cListeners=[];
-  function contactsPresenceStop(){ cListeners.forEach(function(r){ try{ r.off(); }catch(e){} }); cListeners=[]; }
-  function contactsPresenceStart(){
-    contactsPresenceStop();
-    if(typeof firebase==="undefined" || !CONTACTS.length) return;
-    try{ if(!fbApp) fbApp=(firebase.apps&&firebase.apps.length)?firebase.app():firebase.initializeApp(FB_CFG); }catch(e){ return; }
-    var db; try{ db=firebase.database(); }catch(e){ return; }
-    var me=fbClient();
-    CONTACTS.forEach(function(c){
-      sha(c.pair+":presenca").then(function(room){
-        var ref=db.ref("p/"+room.slice(0,32)); cListeners.push(ref);
-        ref.on("value",function(snap){
-          var v=snap.val()||{}, other=null;
-          for(var k in v){ if(k!==me){ other=v[k]; break; } }
-          if(other){
-            c._online=!!other.online;
-            if(other.lastKnock) c._knock=other.lastKnock;
-            if(other.name && !c.name){ c.name=other.name; saveContacts(); }
-          } else { c._online=false; }
-          if(contactsVisible()) renderContacts();
-        });
-      }).catch(function(){});
-    });
-  }
   function showContactOptions(id){
     var c=contactById(id); if(!c) return;
     var box=document.createElement("div"); box.className="qrbox";
     box.innerHTML='<div class="qrcard">'+
-      '<h3 id="coName"></h3>'+
-      '<p>O que você quer fazer com este contato?</p>'+
+      '<h3 id="coName"></h3><p>O que você quer fazer com este contato?</p>'+
       '<button id="coRename">Renomear (apelido só seu)</button>'+
       '<button id="coDelete" style="margin-top:8px;background:#b91c1c">Apagar contato</button>'+
-      '<button class="ghost" id="coCancel" style="margin-top:8px">Cancelar</button>'+
-    '</div>';
+      '<button class="ghost" id="coCancel" style="margin-top:8px">Cancelar</button></div>';
     document.body.appendChild(box);
-    box.querySelector("#coName").textContent=contactLabel(c);   // nome via textContent
+    box.querySelector("#coName").textContent=contactLabel(c);
     function close(){ try{ document.body.removeChild(box); }catch(e){} }
     box.querySelector("#coCancel").addEventListener("click",close);
     box.addEventListener("click",function(e){ if(e.target===box) close(); });
     box.querySelector("#coRename").addEventListener("click",function(){
-      var atual=c.alias||c.name||"";
-      var t=window.prompt("Apelido para este contato (só você vê). Deixe em branco para usar o nome que a pessoa enviou:", atual);
-      if(t===null) return;
-      t=String(t).trim().slice(0,40);
-      c.alias = t || null;
+      var t=window.prompt("Apelido para este contato (só você vê). Em branco = usar o nome que a pessoa enviou:", c.alias||c.name||"");
+      if(t===null) return; t=String(t).trim().slice(0,40); c.alias=t||null;
       saveContacts(); renderContacts(); close();
-      if(currentContactId===id && insideVisible()) updatePeerUI();
+      if(activeId===id) updatePeerUI();
     });
     box.querySelector("#coDelete").addEventListener("click",function(){
       if(!window.confirm("Apagar este contato? A conversa some deste aparelho. (A outra pessoa não é avisada.)")) return;
-      // tira da lista, apaga o segredo do cofre e o cartão de presença guardado
+      stopChannel(id);
       CONTACTS=CONTACTS.filter(function(x){ return x.id!==id; });
-      try{ localStorage.removeItem("cv_peer_"+id); }catch(e){}
+      try{ localStorage.removeItem("cv_peer_"+id); localStorage.removeItem("cv_seen_"+id); }catch(e){}
       saveContacts(); renderContacts(); close();
     });
   }
 
-  // ---------- componente de desenho ----------
+  // ---------- desenho ----------
   function makePattern(gridEl,svgEl,onDone){
     var nodes=[],seq=[],drawing=false,C=[];
     for(var i=0;i<9;i++){ var d=document.createElement("div"); d.className="patnode";
       d.appendChild(document.createElement("span")); gridEl.appendChild(d); nodes.push(d); }
-    function centers(){
-      var gr=gridEl.getBoundingClientRect();
+    function centers(){ var gr=gridEl.getBoundingClientRect();
       svgEl.setAttribute("viewBox","0 0 "+gr.width+" "+gr.height);
       return nodes.map(function(n){ var r=n.getBoundingClientRect();
-        return {x:r.left-gr.left+r.width/2, y:r.top-gr.top+r.height/2}; });
-    }
+        return {x:r.left-gr.left+r.width/2, y:r.top-gr.top+r.height/2}; }); }
     function reset(){ seq=[]; svgEl.innerHTML=""; nodes.forEach(function(n){ n.classList.remove("on"); }); }
-    function draw(tmp){
-      var p="";
-      if(seq.length){
-        p='<polyline points="'+seq.map(function(i){ return C[i].x+","+C[i].y; }).join(" ")+'"/>';
-        if(tmp){ var l=C[seq[seq.length-1]]; p+='<line x1="'+l.x+'" y1="'+l.y+'" x2="'+tmp.x+'" y2="'+tmp.y+'"/>'; }
-      }
-      svgEl.innerHTML=p;
-    }
+    function draw(tmp){ var p="";
+      if(seq.length){ p='<polyline points="'+seq.map(function(i){ return C[i].x+","+C[i].y; }).join(" ")+'"/>';
+        if(tmp){ var l=C[seq[seq.length-1]]; p+='<line x1="'+l.x+'" y1="'+l.y+'" x2="'+tmp.x+'" y2="'+tmp.y+'"/>'; } }
+      svgEl.innerHTML=p; }
     function hit(x,y){ for(var i=0;i<9;i++){ var dx=x-C[i].x,dy=y-C[i].y; if(dx*dx+dy*dy<27*27) return i; } return -1; }
-    function pos(e){ var r=gridEl.getBoundingClientRect(); var t=(e.touches&&e.touches[0])||e;
-      return {x:t.clientX-r.left, y:t.clientY-r.top}; }
+    function pos(e){ var r=gridEl.getBoundingClientRect(); var t=(e.touches&&e.touches[0])||e; return {x:t.clientX-r.left, y:t.clientY-r.top}; }
     function start(e){ e.preventDefault(); C=centers(); reset(); drawing=true; move(e); }
-    function move(e){
-      if(!drawing) return;
-      if(e.cancelable) e.preventDefault();
+    function move(e){ if(!drawing) return; if(e.cancelable) e.preventDefault();
       var p=pos(e), i=hit(p.x,p.y);
-      if(i>=0 && seq.indexOf(i)<0){ seq.push(i); nodes[i].classList.add("on"); }
-      draw(p);
-    }
-    function end(){
-      if(!drawing) return; drawing=false; draw(null);
-      var s=seq.join("-"), n=seq.length;
-      setTimeout(reset,350);
-      onDone(n>=4?s:null);
-    }
-    gridEl.addEventListener("mousedown",start);
-    window.addEventListener("mousemove",move);
-    window.addEventListener("mouseup",end);
-    gridEl.addEventListener("touchstart",start,{passive:false});
-    gridEl.addEventListener("touchmove",move,{passive:false});
-    gridEl.addEventListener("touchend",end);
+      if(i>=0 && seq.indexOf(i)<0){ seq.push(i); nodes[i].classList.add("on"); } draw(p); }
+    function end(){ if(!drawing) return; drawing=false; draw(null);
+      var s=seq.join("-"), n=seq.length; setTimeout(reset,350); onDone(n>=4?s:null); }
+    gridEl.addEventListener("mousedown",start); window.addEventListener("mousemove",move); window.addEventListener("mouseup",end);
+    gridEl.addEventListener("touchstart",start,{passive:false}); gridEl.addEventListener("touchmove",move,{passive:false}); gridEl.addEventListener("touchend",end);
     return {reset:reset};
   }
 
-  // ---------- mensagens ----------
+  // ---------- mensagens (tela) ----------
   function fmtTime(t){ var d=new Date(t); return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2); }
+  function fmtHM(t){ var d=new Date(t); return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2); }
+  function fmtWhen(t){ if(!t) return ""; var d=new Date(t), h=new Date(); var hoje=d.toDateString()===h.toDateString();
+    return (hoje?"hoje":("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2))+" "+fmtHM(t); }
   function addBubble(side,o){
     var box=$("messages"), b=document.createElement("div"); b.className="bubble "+side;
     if(o.type==="photo" && o.img){
       if(o.text){ var cap=document.createElement("div"); cap.textContent=o.text; b.appendChild(cap); }
-      var im=document.createElement("img"); im.src=o.img;
-      im.addEventListener("click",function(){ openLightbox(o.img); }); b.appendChild(im);
+      var im=document.createElement("img"); im.src=o.img; im.addEventListener("click",function(){ openLightbox(o.img); }); b.appendChild(im);
     } else { var tx=document.createElement("div"); tx.textContent=o.text||""; b.appendChild(tx); }
     var tm=document.createElement("div"); tm.className="tm"; tm.textContent=fmtTime(o.t||Date.now()); b.appendChild(tm);
     box.appendChild(b); box.scrollTop=box.scrollHeight;
   }
   function addSystem(t){ var box=$("messages"),s=document.createElement("div"); s.className="sysmsg"; s.textContent=t;
     box.appendChild(s); box.scrollTop=box.scrollHeight; }
-  function openLightbox(src){
-    var lb=document.createElement("div"); lb.className="lightbox";
+  function openLightbox(src){ var lb=document.createElement("div"); lb.className="lightbox";
     var im=document.createElement("img"); im.src=src; lb.appendChild(im);
-    lb.addEventListener("click",function(){ document.body.removeChild(lb); });
-    document.body.appendChild(lb);
-  }
+    lb.addEventListener("click",function(){ document.body.removeChild(lb); }); document.body.appendChild(lb); }
   function insideVisible(){ return !$("inside").classList.contains("hidden"); }
   function contactsVisible(){ return !$("contacts").classList.contains("hidden"); }
   function onIncoming(o){ addBubble("you",o); if(document.hidden || !insideVisible()){ setMsg(true); } }
   function setConn(t){ $("connState").textContent=t; }
+  function myName(){ var c=load(); return (c&&c.name)||"Contato"; }
+  function myAvail(){ var c=load(); return (c&&c.avail)||""; }
 
-  // ---------- rede ----------
+  // ---------- rede (carregar bibliotecas) ----------
   function loadScript(u){ return new Promise(function(res,rej){ var s=document.createElement("script");
-    s.src=u; s.async=true; s.onload=function(){res();}; s.onerror=function(){rej(new Error("x"));};
-    document.head.appendChild(s); }); }
+    s.src=u; s.async=true; s.onload=function(){res();}; s.onerror=function(){rej(new Error("x"));}; document.head.appendChild(s); }); }
   async function ensurePeer(){
     if(window.Peer) return true;
-    var urls=["https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js",
-              "https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js",
-              "https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"];
+    var urls=["https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js","https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js","https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"];
     for(var i=0;i<urls.length;i++){ try{ await loadScript(urls[i]); if(window.Peer) return true; }catch(e){} }
     return false;
   }
   async function ensureQR(){
     if(window.qrcode) return true;
-    var urls=["https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js",
-              "https://unpkg.com/qrcode-generator@1.4.4/qrcode.js",
-              "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"];
+    var urls=["https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js","https://unpkg.com/qrcode-generator@1.4.4/qrcode.js","https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"];
     for(var i=0;i<urls.length;i++){ try{ await loadScript(urls[i]); if(window.qrcode) return true; }catch(e){} }
     return false;
   }
 
-  // Servidores para a VOZ atravessar redes difíceis (celular/operadora, NAT).
-  // STUN só descobre o IP; TURN retransmite quando o caminho direto é bloqueado.
-  // (TURN público gratuito — ajuda muito, mas pode ter limite em horários de pico.)
-  var ICE=[
-    {urls:"stun:stun.l.google.com:19302"},
-    {urls:"stun:stun1.l.google.com:19302"},
-    {urls:"turn:openrelay.metered.ca:80", username:"openrelayproject", credential:"openrelayproject"},
-    {urls:"turn:openrelay.metered.ca:443", username:"openrelayproject", credential:"openrelayproject"},
-    {urls:"turn:openrelay.metered.ca:443?transport=tcp", username:"openrelayproject", credential:"openrelayproject"}
-  ];
-  async function startNetwork(pair){
-    setConn("Conectando...");
-    if(!await ensurePeer()){ setConn("Sem conexão com a rede"); return; }
-    idA="pc"+(await sha(pair+":a")).slice(0,24);
-    idB="pc"+(await sha(pair+":b")).slice(0,24);
-    register(idA,idB);
+  // ---------- presença guardada por contato ----------
+  function loadPeerInto(k){ try{ var p=JSON.parse(localStorage.getItem("cv_peer_"+k.id)||"null");
+    if(p){ k.peerName=p.name||""; k.peerAvail=p.avail||""; k.peerLastSeen=p.lastSeen||0; k.lastContact=p.lastMsg||0; } }catch(e){} }
+  function savePeerOf(k){ try{ localStorage.setItem("cv_peer_"+k.id, JSON.stringify({name:k.peerName,avail:k.peerAvail,lastSeen:k.peerLastSeen,lastMsg:k.lastContact})); }catch(e){} }
+
+  // ==================== POOL DE CANAIS ====================
+  // Cada contato tem um canal vivo (conexão P2P própria) enquanto o app está
+  // aberto e destrancado. Assim você recebe mensagem/chamada de QUALQUER contato
+  // sem precisar abrir a conversa. As mensagens seguem criptografadas ponta a ponta.
+  async function poolStart(){
+    if(poolOn) return; poolOn=true;
+    if(!await ensurePeer()){ if(activeId) setConn("Sem conexão com a rede"); return; }
+    var list=CONTACTS.slice(0,MAX_LIVE);
+    for(var i=0;i<list.length;i++){ startChannel(list[i]); }
   }
-  function register(mine,other){
-    myId=mine; otherId=other;
-    try{ if(peer) peer.destroy(); }catch(e){}
-    try{ peer=new Peer(mine,{debug:0, config:{iceServers:ICE}}); }catch(e){ setConn("Sem conexão com a rede"); return; }
-    peer.on("open",function(){ setConn("Aguardando o outro aparelho"); if(mine===idB) tryConnect(); startRetry(); });
-    peer.on("connection",function(c){ bindConn(c); });
-    peer.on("call",function(c){ onIncomingCall(c); });
-    peer.on("disconnected",function(){ setConn("Reconectando..."); try{ peer.reconnect(); }catch(e){} });
-    peer.on("error",function(err){
+  function poolStop(){
+    poolOn=false;
+    Object.keys(CH).forEach(function(id){ teardownChannel(CH[id]); });
+    CH={}; endCall();
+    if(uiTimer){ clearInterval(uiTimer); uiTimer=null; }
+    releaseWake();
+  }
+  function stopChannel(id){ if(CH[id]){ teardownChannel(CH[id]); delete CH[id]; } }
+  function teardownChannel(k){
+    if(!k) return;
+    if(k.hbTimer){ clearInterval(k.hbTimer); k.hbTimer=null; }
+    if(k.retry){ clearInterval(k.retry); k.retry=null; }
+    fbStopChannel(k);
+    try{ if(k.conn) k.conn.close(); }catch(e){} k.conn=null;
+    try{ if(k.peer) k.peer.destroy(); }catch(e){} k.peer=null;
+  }
+  async function startChannel(c){
+    if(CH[c.id]) return CH[c.id];
+    var k={ id:c.id, pair:c.pair, role:c.role||"a", peer:null, conn:null, hbTimer:null, retry:null,
+      roomKey:null, buffer:[], unread:false, pendingBg:null,
+      peerName:"", peerAvail:"", peerLastSeen:0, lastContact:0, peerOnlineFB:false,
+      fbRoomRef:null, fbMeRef:null, myIdCh:null, otherIdCh:null };
+    CH[c.id]=k; loadPeerInto(k);
+    try{ k.roomKey=await deriveRoomKey(c.pair); }catch(e){}
+    var idA="pc"+(await sha(c.pair+":a")).slice(0,24);
+    var idB="pc"+(await sha(c.pair+":b")).slice(0,24);
+    k.myIdCh=(k.role==="b")?idB:idA; k.otherIdCh=(k.role==="b")?idA:idB;
+    if(!window.Peer){ if(!await ensurePeer()) return k; }
+    openPeer(k); fbInitChannel(k);
+    return k;
+  }
+  function openPeer(k){
+    try{ if(k.peer) k.peer.destroy(); }catch(e){}
+    try{ k.peer=new Peer(k.myIdCh,{debug:0, config:{iceServers:ICE}}); }catch(e){ return; }
+    k.peer.on("open",function(){ maybeConnect(k); startChRetry(k); if(k.id===activeId) setConn(k.conn&&k.conn.open?"Conectado":"Aguardando o outro aparelho"); });
+    k.peer.on("connection",function(conn){ bindChConn(k,conn); });
+    k.peer.on("call",function(call){ onChIncomingCall(k,call); });
+    k.peer.on("disconnected",function(){ try{ k.peer.reconnect(); }catch(e){} });
+    k.peer.on("error",function(err){
       var t=err&&err.type;
-      if(t==="unavailable-id" && mine===idA){ register(idB,idA); return; }
-      if(t==="peer-unavailable"){ setConn("Aguardando o outro aparelho"); return; }
-      if(t==="network"||t==="server-error"){ setConn("Rede instável"); }
+      if(t==="unavailable-id"){ setTimeout(function(){ if(CH[k.id]===k && poolOn){ openPeer(k); } },1500); return; }
+      if(t==="peer-unavailable"){ if(k.id===activeId) setConn("Aguardando o outro aparelho"); return; }
+      if((t==="network"||t==="server-error") && k.id===activeId){ setConn("Rede instável"); }
     });
   }
-  function tryConnect(){ if(conn&&conn.open) return; try{ bindConn(peer.connect(otherId,{reliable:true})); }catch(e){} }
-  function startRetry(){
-    if(retryTimer) clearInterval(retryTimer);
-    retryTimer=setInterval(function(){
-      if(!peer||peer.destroyed) return;
-      if(conn&&conn.open) return;
-      if(myId===idB) tryConnect();
-    },5000);
+  function iAmInitiator(k){ return k.myIdCh < k.otherIdCh; }   // um só lado inicia a conexão de dados
+  function maybeConnect(k){
+    if(!k.peer || (k.conn&&k.conn.open)) return;
+    if(iAmInitiator(k)){ try{ bindChConn(k, k.peer.connect(k.otherIdCh,{reliable:true})); }catch(e){} }
   }
-
-  // ---------- presença ao vivo (o cartão trocado no ar + guardado local) ----------
-  var peerName="", peerAvail="", peerLastSeen=0, lastContact=0, hbTimer=null, uiTimer=null;
-  function peerKey(){ return "cv_peer_"+(currentContactId||"x"); }
-  function loadPeer(){
-    peerName="";peerAvail="";peerLastSeen=0;lastContact=0;
-    try{ var p=JSON.parse(localStorage.getItem(peerKey())||"null"); if(p){
-      peerName=p.name||""; peerAvail=p.avail||""; peerLastSeen=p.lastSeen||0; lastContact=p.lastMsg||0; } }catch(e){}
+  function startChRetry(k){
+    if(k.retry) clearInterval(k.retry);
+    k.retry=setInterval(function(){ if(!k.peer||k.peer.destroyed) return; if(k.conn&&k.conn.open) return; maybeConnect(k); },5000);
   }
-  function savePeer(){
-    try{ localStorage.setItem(peerKey(), JSON.stringify({name:peerName,avail:peerAvail,lastSeen:peerLastSeen,lastMsg:lastContact})); }catch(e){}
-  }
-  function fmtHM(t){ var d=new Date(t); return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2); }
-  function fmtWhen(t){
-    if(!t) return "";
-    var d=new Date(t), h=new Date(); var hoje=d.toDateString()===h.toDateString();
-    return (hoje?"hoje":("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2))+" "+fmtHM(t);
-  }
-  function myName(){ var c=load(); return (c&&c.name)||"Contato"; }
-  function myAvail(){ var c=load(); return (c&&c.avail)||""; }
-
-  async function sendCtl(o){
-    if(!roomKey || !conn || !conn.open) return;
-    try{ conn.send(await encryptObj(o)); }catch(e){}
-  }
-  function sendHello(){ sendCtl({t:"hello", name:myName(), avail:myAvail(), ts:Date.now()}); }
-
-  // ---- presença offline (Firebase): só metadados, nunca mensagens ----
-  var FB_CFG={
-    apiKey:"AIzaSyAYkGkibjEBZEqzQHN4RY3p3nhmXQa7q2Q",
-    authDomain:"portal-interno-cd2a8.firebaseapp.com",
-    databaseURL:"https://portal-interno-cd2a8-default-rtdb.firebaseio.com",
-    projectId:"portal-interno-cd2a8",
-    storageBucket:"portal-interno-cd2a8.firebasestorage.app",
-    messagingSenderId:"93288022454",
-    appId:"1:93288022454:web:99e1ddfb77a26067b20117"
-  };
-  var fbApp=null, fbRoomRef=null, fbMeRef=null, fbClientId="", peerOnlineFB=false;
-  function fbClient(){
-    if(fbClientId) return fbClientId;
-    try{ fbClientId=localStorage.getItem("cv_fbid")||""; }catch(e){}
-    if(!fbClientId){
-      fbClientId="c"+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
-      try{ localStorage.setItem("cv_fbid",fbClientId); }catch(e){}
-    }
-    return fbClientId;
-  }
-  async function fbInit(pair){
-    if(typeof firebase==="undefined") return;
-    try{
-      if(!fbApp) fbApp=(firebase.apps&&firebase.apps.length)?firebase.app():firebase.initializeApp(FB_CFG);
-      var room=(await sha(pair+":presenca")).slice(0,32);
-      var db=firebase.database(), me=fbClient(), TS=firebase.database.ServerValue.TIMESTAMP;
-      fbRoomRef=db.ref("p/"+room);
-      fbMeRef=db.ref("p/"+room+"/"+me);
-      fbMeRef.update({ name:myName(), avail:myAvail(), online:true, lastSeen:TS });
-      fbMeRef.onDisconnect().update({ online:false, lastSeen:TS });
-      fbRoomRef.on("value",function(snap){
-        var v=snap.val()||{}, other=null;
-        for(var k in v){ if(k!==me){ other=v[k]; break; } }
-        if(other){
-          peerOnlineFB=!!other.online;
-          if(other.name){ peerName=other.name; setContactName(currentPair,other.name); }
-          if(typeof other.avail==="string") peerAvail=other.avail;
-          if(other.lastSeen && other.lastSeen>peerLastSeen) peerLastSeen=other.lastSeen;
-          if(other.lastKnock && other.lastKnock>lastContact) lastContact=other.lastKnock;
-          savePeer(); updatePeerUI();
-        }
-      });
-    }catch(e){}
-  }
-  function fbKnock(){ try{ if(fbMeRef) fbMeRef.update({ lastKnock:firebase.database.ServerValue.TIMESTAMP }); }catch(e){} }
-  function fbAvail(){ try{ if(fbMeRef) fbMeRef.update({ avail:myAvail() }); }catch(e){} }
-  function fbStop(){
-    try{ if(fbRoomRef) fbRoomRef.off(); }catch(e){}
-    try{ if(fbMeRef){ fbMeRef.onDisconnect().cancel();
-      fbMeRef.update({ online:false, lastSeen:firebase.database.ServerValue.TIMESTAMP }); } }catch(e){}
-    fbRoomRef=null; fbMeRef=null; peerOnlineFB=false;
-  }
-
-  function updatePeerUI(){
-    var online=!!(conn && conn.open) || peerOnlineFB;
-    var c=findByPair(currentPair), nm=(c&&c.alias)||peerName||(c&&c.name)||"Novo contato";
-    $("chatCompany").textContent=nm;
-    var st=$("connState");
-    if(online){ st.innerHTML='<span class="on">online</span>'; }
-    else { st.textContent = "offline"+(peerLastSeen?(" · visto "+fmtWhen(peerLastSeen)):""); }
-    var bar=$("peerbar"), parts=[];
-    if(peerAvail) parts.push("<b>Disponível:</b> "+peerAvail.replace(/[<>]/g,""));
-    if(lastContact) parts.push('<span class="call">chamou às '+fmtHM(lastContact)+'</span>');
-    if(parts.length){ bar.innerHTML=parts.join("&nbsp;&nbsp;·&nbsp;&nbsp;"); bar.classList.remove("hidden"); }
-    else bar.classList.add("hidden");
-  }
-  function onPeerData(o){
-    if(o && (o.t==="hello" || o.t==="ping")){
-      peerLastSeen=Date.now();
-      if(o.name){ peerName=o.name; setContactName(currentPair,o.name); }
-      if(typeof o.avail==="string") peerAvail=o.avail;
-      if(o.t==="hello") sendCtl({t:"ping", ts:Date.now()});
-      savePeer(); updatePeerUI(); return true;
+  async function sendCtlCh(k,o){ if(!k.roomKey||!k.conn||!k.conn.open) return; try{ k.conn.send(await encWith(k.roomKey,o)); }catch(e){} }
+  function sendHelloCh(k){ sendCtlCh(k,{t:"hello",name:myName(),avail:myAvail(),ts:Date.now()}); }
+  function onChPeerData(k,o){
+    if(o && (o.t==="hello"||o.t==="ping")){
+      k.peerLastSeen=Date.now();
+      if(o.name){ k.peerName=o.name; setContactNameById(k.id,o.name); }
+      if(typeof o.avail==="string") k.peerAvail=o.avail;
+      if(o.t==="hello") sendCtlCh(k,{t:"ping",ts:Date.now()});
+      savePeerOf(k);
+      if(k.id===activeId) updatePeerUI(); else if(contactsVisible()) renderContacts();
+      return true;
     }
     return false;
   }
-  function bindConn(c){
-    conn=c;
-    c.on("open",function(){
-      setConn("Conectado"); addSystem("Canal seguro estabelecido.");
-      peerLastSeen=Date.now(); savePeer(); updatePeerUI();
-      sendHello();
-      if(hbTimer) clearInterval(hbTimer);
-      hbTimer=setInterval(function(){ if(conn&&conn.open) sendCtl({t:"ping",ts:Date.now()}); },15000);
+  function bindChConn(k,conn){
+    if(k.conn && k.conn!==conn && k.conn.open){ try{ conn.close(); }catch(e){} return; } // já há conexão
+    k.conn=conn;
+    conn.on("open",function(){
+      k.peerLastSeen=Date.now(); savePeerOf(k); sendHelloCh(k);
+      if(k.hbTimer) clearInterval(k.hbTimer);
+      k.hbTimer=setInterval(function(){ if(k.conn&&k.conn.open) sendCtlCh(k,{t:"ping",ts:Date.now()}); },15000);
+      if(k.id===activeId){ setConn("Conectado"); addSystem("Canal seguro estabelecido."); updatePeerUI(); }
+      else if(contactsVisible()) renderContacts();
     });
-    c.on("data",async function(p){
-      if(!roomKey) return;
-      try{ var o=await decryptObj(p); if(onPeerData(o)) return;
-        lastContact=Date.now(); savePeer(); onIncoming(o); }catch(e){}
+    conn.on("data",async function(p){
+      if(!k.roomKey) return;
+      try{ var o=await decWith(k.roomKey,p);
+        if(onChPeerData(k,o)) return;
+        k.lastContact=Date.now(); savePeerOf(k);
+        if(k.id===activeId){ onIncoming(o); }
+        else { k.buffer.push(o); if(k.buffer.length>300) k.buffer.shift(); k.unread=true; setMsg(true);
+               if(contactsVisible()) renderContacts(); }
+      }catch(e){}
     });
-    c.on("close",function(){
-      conn=null; if(hbTimer){ clearInterval(hbTimer); hbTimer=null; }
-      peerLastSeen=Date.now(); savePeer(); updatePeerUI();
+    conn.on("close",function(){
+      if(k.hbTimer){ clearInterval(k.hbTimer); k.hbTimer=null; }
+      if(k.conn===conn) k.conn=null; k.peerLastSeen=Date.now(); savePeerOf(k);
+      if(k.id===activeId) updatePeerUI(); else if(contactsVisible()) renderContacts();
     });
-    c.on("error",function(){});
+    conn.on("error",function(){});
   }
-  async function wireSend(o){
+
+  // ---- presença offline (Firebase) por canal ----
+  function fbInitChannel(k){
+    var db=fbReady(); if(!db) return;
+    try{
+      var me=fbClient(), TS=firebase.database.ServerValue.TIMESTAMP;
+      sha(k.pair+":presenca").then(function(room){
+        room=room.slice(0,32);
+        k.fbRoomRef=db.ref("p/"+room); k.fbMeRef=db.ref("p/"+room+"/"+me);
+        k.fbMeRef.update({ name:myName(), avail:myAvail(), online:true, lastSeen:TS });
+        k.fbMeRef.onDisconnect().update({ online:false, lastSeen:TS });
+        k.fbRoomRef.on("value",function(snap){
+          var v=snap.val()||{}, other=null;
+          for(var x in v){ if(x!==me){ other=v[x]; break; } }
+          if(other){
+            k.peerOnlineFB=!!other.online;
+            if(other.name){ k.peerName=other.name; setContactNameById(k.id,other.name); }
+            if(typeof other.avail==="string") k.peerAvail=other.avail;
+            if(other.lastSeen && other.lastSeen>k.peerLastSeen) k.peerLastSeen=other.lastSeen;
+            if(other.lastKnock && other.lastKnock>k.lastContact) k.lastContact=other.lastKnock;
+            savePeerOf(k);
+          } else { k.peerOnlineFB=false; }
+          if(k.id===activeId) updatePeerUI(); else if(contactsVisible()) renderContacts();
+        });
+      }).catch(function(){});
+    }catch(e){}
+  }
+  function fbKnockCh(k){ try{ if(k.fbMeRef) k.fbMeRef.update({ lastKnock:firebase.database.ServerValue.TIMESTAMP }); }catch(e){} }
+  function fbAvailAll(){ Object.keys(CH).forEach(function(id){ try{ if(CH[id].fbMeRef) CH[id].fbMeRef.update({avail:myAvail(),name:myName()}); }catch(e){} }); }
+  function fbStopChannel(k){
+    try{ if(k.fbRoomRef) k.fbRoomRef.off(); }catch(e){}
+    try{ if(k.fbMeRef){ k.fbMeRef.onDisconnect().cancel();
+      k.fbMeRef.update({ online:false, lastSeen:firebase.database.ServerValue.TIMESTAMP }); } }catch(e){}
+    k.fbRoomRef=null; k.fbMeRef=null; k.peerOnlineFB=false;
+  }
+
+  // ---------- conversa ativa ----------
+  function activateChannel(id){
+    activeId=id;
+    var k=CH[id], c=contactById(id); if(!k) return;
+    wireOnce(); paintSwitch(); paintWake(); applyWake();
+    $("messages").innerHTML=""; setMsg(false); show("inside");
+    $("chatCompany").textContent=(c&&(c.alias||c.name))||k.peerName||"Novo contato";
+    addSystem("Conversa não fica gravada no aparelho.");
+    if(k.buffer.length){ k.buffer.forEach(function(o){ addBubble("you",o); }); k.buffer=[]; }
+    k.unread=false;
+    updatePeerUI();
+    if(uiTimer) clearInterval(uiTimer); uiTimer=setInterval(function(){ if(activeId) updatePeerUI(); },30000);
+    if(k.conn&&k.conn.open) setConn("Conectado"); else setConn(k.peer?"Aguardando o outro aparelho":"Conectando...");
+    maybeConnect(k);
+  }
+  function updatePeerUI(){
+    if(!activeId) return; var k=CH[activeId], c=contactById(activeId); if(!k) return;
+    var online=!!(k.conn&&k.conn.open)||k.peerOnlineFB;
+    var nm=(c&&c.alias)||k.peerName||(c&&c.name)||"Novo contato";
+    $("chatCompany").textContent=nm;
+    var st=$("connState");
+    if(online){ st.innerHTML='<span class="on">online</span>'; }
+    else { st.textContent="offline"+(k.peerLastSeen?(" · visto "+fmtWhen(k.peerLastSeen)):""); }
+    var bar=$("peerbar"), parts=[];
+    if(k.peerAvail) parts.push("<b>Disponível:</b> "+k.peerAvail.replace(/[<>]/g,""));
+    if(k.lastContact) parts.push('<span class="call">chamou às '+fmtHM(k.lastContact)+'</span>');
+    if(parts.length){ bar.innerHTML=parts.join("&nbsp;&nbsp;·&nbsp;&nbsp;"); bar.classList.remove("hidden"); }
+    else bar.classList.add("hidden");
+  }
+  function sendMsg(o){
     addBubble("me",o);
-    fbKnock();
-    if(!roomKey) return;
-    try{ var p=await encryptObj(o); if(conn&&conn.open) conn.send(p); }catch(e){}
+    var k=CH[activeId]; if(!k) return;
+    fbKnockCh(k);
+    if(!k.roomKey) return;
+    encWith(k.roomKey,o).then(function(p){ if(k.conn&&k.conn.open) k.conn.send(p); }).catch(function(){});
   }
+  function sendText(){ var t=$("msgInput").value.trim(); if(!t) return; sendMsg({type:"text",text:t,t:Date.now()}); $("msgInput").value=""; }
 
   // ---------- voz ----------
   function showCallBar(t,s,acc){ $("callTitle").textContent=t; $("callSub").textContent=s||"";
     $("callAccept").classList.toggle("hidden",!acc); $("callBar").classList.remove("hidden"); }
   function hideCallBar(){ $("callBar").classList.add("hidden"); }
-  function startTimer(){
-    callStart=Date.now(); if(callTimer) clearInterval(callTimer);
+  function startTimer(){ callStart=Date.now(); if(callTimer) clearInterval(callTimer);
     callTimer=setInterval(function(){ var s=Math.floor((Date.now()-callStart)/1000);
-      $("callSub").textContent=("0"+Math.floor(s/60)).slice(-2)+":"+("0"+(s%60)).slice(-2); },1000);
-  }
-  async function getMic(){
-    skipHideOnce=true;
+      $("callSub").textContent=("0"+Math.floor(s/60)).slice(-2)+":"+("0"+(s%60)).slice(-2); },1000); }
+  async function getMic(){ skipHideOnce=true;
     try{ return await navigator.mediaDevices.getUserMedia({audio:true}); }
-    catch(e){ addSystem("Microfone não autorizado."); return null; }
-  }
+    catch(e){ addSystem("Microfone não autorizado."); return null; } }
   async function startCall(){
-    if(!conn||!conn.open){ addSystem("O outro aparelho não está conectado."); return; }
+    var k=CH[activeId]; if(!k||!k.conn||!k.conn.open){ addSystem("O outro aparelho não está conectado."); return; }
     if(currentCall||pendingCall) return;
     var st=await getMic(); if(!st) return;
     localStream=st; showCallBar("Chamando...","",false);
-    try{ bindCall(peer.call(otherId,localStream)); }catch(e){ endCall(); }
+    try{ bindCall(k.peer.call(k.otherIdCh,localStream)); }catch(e){ endCall(); }
   }
-  function onIncomingCall(c){ pendingCall=c; showCallBar("Chamada recebida","",true); setMsg(true); }
+  function onChIncomingCall(k,call){
+    if(k.id===activeId){ pendingCall=call; showCallBar("Chamada recebida","",true); setMsg(true); }
+    else {
+      k.pendingBg=call; setMsg(true);
+      var c=contactById(k.id);
+      $("bgCallName").textContent="Chamada de "+((c&&(c.alias||c.name))||k.peerName||"contato");
+      $("bgCall").classList.remove("hidden");
+      call.on("close",function(){ if(k.pendingBg===call){ k.pendingBg=null; $("bgCall").classList.add("hidden"); } });
+    }
+  }
   async function acceptCall(){
     if(!pendingCall) return;
     var st=await getMic(); if(!st) return;
@@ -873,28 +872,30 @@
     currentCall=null; pendingCall=null;
     if(callTimer){ clearInterval(callTimer); callTimer=null; }
     try{ if(localStream) localStream.getTracks().forEach(function(t){ t.stop(); }); }catch(e){}
-    localStream=null;
-    try{ $("remoteAudio").srcObject=null; }catch(e){}
-    hideCallBar();
+    localStream=null; try{ $("remoteAudio").srcObject=null; }catch(e){} hideCallBar();
   }
+  function findPendingBg(){ var ids=Object.keys(CH); for(var i=0;i<ids.length;i++){ if(CH[ids[i]].pendingBg) return CH[ids[i]]; } return null; }
+  $("bgCallAccept").addEventListener("click",function(){
+    var k=findPendingBg(); $("bgCall").classList.add("hidden"); if(!k) return;
+    var call=k.pendingBg; k.pendingBg=null;
+    openContact(k.id);
+    getMic().then(function(st){ if(!st) return; localStream=st; try{ call.answer(localStream); bindCall(call); }catch(e){ endCall(); } });
+  });
+  $("bgCallReject").addEventListener("click",function(){
+    var k=findPendingBg(); $("bgCall").classList.add("hidden"); if(!k) return;
+    try{ k.pendingBg.close(); }catch(e){} k.pendingBg=null;
+  });
 
-  // ---------- eventos do bate-papo ----------
-  function sendText(){ var t=$("msgInput").value.trim(); if(!t) return;
-    wireSend({type:"text",text:t,t:Date.now()}); $("msgInput").value=""; }
-  function paintSwitch(){ $("swLockUI").classList.toggle("on", !!lockOnHide); }
-  function paintWake(){ $("wakeUI").classList.toggle("on", !!keepAwake); }
-
-  // ---- manter tela ligada (Wake Lock) ----
+  // ---------- manter tela ligada ----------
   var wakeSupported = ("wakeLock" in navigator);
   async function acquireWake(){
-    if(!wakeSupported || !keepAwake) return;
-    if(document.hidden || !insideVisible()) return;
-    try{ wakeSentinel = await navigator.wakeLock.request("screen");
-      wakeSentinel.addEventListener("release", function(){ wakeSentinel=null; });
-    }catch(e){ wakeSentinel=null; }
+    if(!wakeSupported || !keepAwake) return; if(document.hidden || !insideVisible()) return;
+    try{ wakeSentinel=await navigator.wakeLock.request("screen"); wakeSentinel.addEventListener("release",function(){ wakeSentinel=null; }); }catch(e){ wakeSentinel=null; }
   }
   async function releaseWake(){ try{ if(wakeSentinel){ await wakeSentinel.release(); } }catch(e){} wakeSentinel=null; }
   function applyWake(){ if(keepAwake) acquireWake(); else releaseWake(); }
+  function paintSwitch(){ $("swLockUI").classList.toggle("on", !!lockOnHide); }
+  function paintWake(){ $("wakeUI").classList.toggle("on", !!keepAwake); }
 
   function wireOnce(){
     if(wired) return; wired=true;
@@ -903,117 +904,79 @@
     $("attachBtn").addEventListener("click",function(){ skipHideOnce=true; $("photoFile").click(); });
     $("photoFile").addEventListener("change",function(){
       var f=this.files&&this.files[0]; this.value=""; if(!f) return;
-      scalePhoto(f,1024,function(d){ if(!d) return;
-        wireSend({type:"photo",img:d,text:$("msgInput").value.trim(),t:Date.now()}); $("msgInput").value=""; });
+      scalePhoto(f,1024,function(d){ if(!d) return; sendMsg({type:"photo",img:d,text:$("msgInput").value.trim(),t:Date.now()}); $("msgInput").value=""; });
     });
     $("callBtn").addEventListener("click",startCall);
     $("callAccept").addEventListener("click",acceptCall);
     $("callEnd").addEventListener("click",endCall);
-    $("backBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); if(currentContactId) markSeen(currentContactId); closeSession(); showContacts(); });
+    $("backBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); if(activeId) markSeen(activeId); showContacts(); });
     $("menuBtn").addEventListener("click",function(){ $("menu").classList.toggle("hidden"); });
     document.addEventListener("click",function(e){
-      if(!$("menu").classList.contains("hidden") && !$("menu").contains(e.target) && e.target!==$("menuBtn")){
-        $("menu").classList.add("hidden"); }
-    });
-    $("swLock").addEventListener("click",function(e){
-      e.stopPropagation();
-      lockOnHide=!lockOnHide; paintSwitch();
-      var c=load(); if(c){ c.lockOnHide=lockOnHide; save(c); }
-    });
-    $("wakeBtn").addEventListener("click",function(e){
-      e.stopPropagation();
-      if(!wakeSupported){ keepAwake=false; paintWake();
-        addSystem("Este aparelho não permite manter a tela ligada."); return; }
-      keepAwake=!keepAwake; paintWake();
-      var c=load(); if(c){ c.keepAwake=keepAwake; save(c); }
-      applyWake();
-    });
+      if(!$("menu").classList.contains("hidden") && !$("menu").contains(e.target) && e.target!==$("menuBtn")){ $("menu").classList.add("hidden"); } });
+    $("swLock").addEventListener("click",function(e){ e.stopPropagation(); lockOnHide=!lockOnHide; paintSwitch();
+      var c=load(); if(c){ c.lockOnHide=lockOnHide; save(c); } });
+    $("wakeBtn").addEventListener("click",function(e){ e.stopPropagation();
+      if(!wakeSupported){ keepAwake=false; paintWake(); addSystem("Este aparelho não permite manter a tela ligada."); return; }
+      keepAwake=!keepAwake; paintWake(); var c=load(); if(c){ c.keepAwake=keepAwake; save(c); } applyWake(); });
     $("availBtn").addEventListener("click",function(){
-      $("menu").classList.add("hidden");
-      var atual=myAvail();
+      $("menu").classList.add("hidden"); var atual=myAvail();
       var txt=window.prompt("Escreva quando você costuma ficar disponível (a outra pessoa vê isto):", atual||"");
-      if(txt===null) return;
-      txt=String(txt).slice(0,60);
+      if(txt===null) return; txt=String(txt).slice(0,60);
       var c=load(); if(c){ c.avail=txt; save(c); }
-      sendHello(); fbAvail();
+      Object.keys(CH).forEach(function(id){ sendHelloCh(CH[id]); }); fbAvailAll();
     });
-    $("inviteThisBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); if(currentPair) showInvite(currentPair); });
-    $("reconnectBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); setConn("Reconectando..."); tryConnect(); });
-    $("backMenuBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); if(currentContactId) markSeen(currentContactId); closeSession(); showContacts(); });
+    $("inviteThisBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); if(activeId){ var k=CH[activeId]; if(k) showInvite(k.pair); } });
+    $("reconnectBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); var k=CH[activeId]; if(k){ setConn("Reconectando..."); maybeConnect(k); } });
+    $("backMenuBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); if(activeId) markSeen(activeId); showContacts(); });
     $("logoutBtn").addEventListener("click",function(){ lockNow(); });
     window.addEventListener("focus",function(){ if(insideVisible()) setMsg(false); });
     document.addEventListener("visibilitychange",function(){
-      if(document.hidden){
-        if(skipHideOnce){ skipHideOnce=false; return; }
-        if(lockOnHide && (insideVisible()||contactsVisible()) && !currentCall){ lockNow(); }
-      } else { if(insideVisible()){ setMsg(false); applyWake(); } }
+      if(document.hidden){ if(skipHideOnce){ skipHideOnce=false; return; }
+        if(lockOnHide && (insideVisible()||contactsVisible()) && !currentCall){ lockNow(); } }
+      else { if(insideVisible()){ setMsg(false); applyWake(); } }
     });
   }
 
-  // ---------- configuração (só Nome + desenho) ----------
+  // ---------- configuração (Nome + desenho) ----------
   fillLogo($("setupLogo"),null);
   if(prefillPair){ $("conviteAviso").classList.remove("hidden"); }
   $("cfgPickLogo").addEventListener("click",function(){ $("cfgLogoFile").click(); });
   $("cfgLogoFile").addEventListener("change",function(){
     var f=this.files&&this.files[0]; if(!f) return;
-    scaleImage(f,160,function(d,cols){ if(!d) return;
-      pendingLogo=d; pendingColors=cols||DEF_COLORS;
-      fillLogo($("setupLogo"),pendingLogo); applyColors(pendingColors);
-      $("cfgClearLogo").classList.remove("hidden"); });
+    scaleImage(f,160,function(d,cols){ if(!d) return; pendingLogo=d; pendingColors=cols||DEF_COLORS;
+      fillLogo($("setupLogo"),pendingLogo); applyColors(pendingColors); $("cfgClearLogo").classList.remove("hidden"); });
   });
-  $("cfgClearLogo").addEventListener("click",function(){
-    pendingLogo=null; pendingColors=null; $("cfgLogoFile").value="";
-    fillLogo($("setupLogo"),null); applyColors(DEF_COLORS); this.classList.add("hidden");
-  });
-  function nomeOk(){
-    var m=$("cfgMsg"); m.className="msgline"; m.textContent="";
-    pendingName=$("cfgName").value.trim();
-    if(!pendingName){ m.className="msgline err"; m.textContent="Escreva o seu nome."; return false; }
-    return true;
-  }
-  function irParaDesenho(){
-    firstPat=null;
-    $("setupStep1").classList.add("hidden"); $("setupStep2").classList.remove("hidden");
-    $("setupSub").textContent="Crie o seu desenho de acesso";
-    $("sHint").textContent="Ligue pelo menos 4 pontos"; $("sMsg").textContent="";
-  }
+  $("cfgClearLogo").addEventListener("click",function(){ pendingLogo=null; pendingColors=null; $("cfgLogoFile").value="";
+    fillLogo($("setupLogo"),null); applyColors(DEF_COLORS); this.classList.add("hidden"); });
+  function nomeOk(){ var m=$("cfgMsg"); m.className="msgline"; m.textContent=""; pendingName=$("cfgName").value.trim();
+    if(!pendingName){ m.className="msgline err"; m.textContent="Escreva o seu nome."; return false; } return true; }
+  function irParaDesenho(){ firstPat=null; $("setupStep1").classList.add("hidden"); $("setupStep2").classList.remove("hidden");
+    $("setupSub").textContent="Crie o seu desenho de acesso"; $("sHint").textContent="Ligue pelo menos 4 pontos"; $("sMsg").textContent=""; }
   $("cfgContinue").addEventListener("click",function(){ if(nomeOk()) irParaDesenho(); });
-  $("sBack").addEventListener("click",function(){
-    $("setupStep2").classList.add("hidden"); $("setupStep1").classList.remove("hidden");
-    $("setupSub").textContent="Primeiro acesso — defina seu nome";
-  });
+  $("sBack").addEventListener("click",function(){ $("setupStep2").classList.add("hidden"); $("setupStep1").classList.remove("hidden");
+    $("setupSub").textContent="Primeiro acesso — defina seu nome"; });
 
   makePattern($("sGrid"),$("sLines"),async function(pat){
     var m=$("sMsg"); m.className="msgline";
     if(!pat){ m.className="msgline err"; m.textContent="Use pelo menos 4 pontos."; return; }
-    if(!firstPat){ firstPat=pat; $("sHint").textContent="Repita o mesmo desenho para confirmar";
-      m.className="msgline ok"; m.textContent="Agora repita."; return; }
-    if(pat!==firstPat){ firstPat=null; $("sHint").textContent="Ligue pelo menos 4 pontos";
-      m.className="msgline err"; m.textContent="Os desenhos não conferem. Comece de novo."; return; }
+    if(!firstPat){ firstPat=pat; $("sHint").textContent="Repita o mesmo desenho para confirmar"; m.className="msgline ok"; m.textContent="Agora repita."; return; }
+    if(pat!==firstPat){ firstPat=null; $("sHint").textContent="Ligue pelo menos 4 pontos"; m.className="msgline err"; m.textContent="Os desenhos não conferem. Comece de novo."; return; }
     m.className="msgline"; m.textContent="Salvando...";
-    var salt=rnd(16);
-    CONTACTS=[];
+    var salt=rnd(16); CONTACTS=[];
     var pend=(prefillPair||"").trim(); prefillPair=null;
-    if(pend.length>=12){ CONTACTS.push({id:rnd(8),name:"",pair:pend,ts:Date.now()}); }
+    if(pend.length>=12){ CONTACTS.push({id:rnd(8),name:"",alias:null,pair:pend,role:"b",ts:Date.now()}); }
     VK=await keyFromPattern(pat,salt);
     var vault=null; try{ vault=await sealWith(VK,{contacts:CONTACTS}); }catch(e){ vault=null; }
-    var ok = vault && save({v:CFG_VERSION,name:pendingName,logo:pendingLogo||null,colors:pendingColors||DEF_COLORS,
-      salt:salt,vault:vault,att:0,lockOnHide:true,keepAwake:false});
+    var ok = vault && save({v:CFG_VERSION,name:pendingName,logo:pendingLogo||null,colors:pendingColors||DEF_COLORS,salt:salt,vault:vault,att:0,lockOnHide:true,keepAwake:false});
     if(!ok){ m.className="msgline err"; m.textContent="Não foi possível salvar (imagem muito grande?)."; return; }
     m.className="msgline ok"; m.textContent="Pronto!";
-    var openPair = CONTACTS.length?CONTACTS[0].pair:null;
     var openId = CONTACTS.length?CONTACTS[0].id:null;
-    setTimeout(function(){
-      paintIdentity(load());
-      if(openPair){ currentContactId=openId; enterSecure(openPair); }
-      else { showContacts(); }
-    },400);
+    setTimeout(function(){ paintIdentity(load()); poolStart().then(function(){ if(openId) openContact(openId); else showContacts(); }); },400);
   });
 
   // ---------- identidade visual ----------
   function paintIdentity(cfg){
-    cfg=cfg||load()||{};
-    var nm=cfg.name||"Portal";
+    cfg=cfg||load()||{}; var nm=cfg.name||"Portal";
     $("companyName").textContent=nm; $("companyName").title=nm;
     fillLogo($("lockLogo"),cfg.logo||null); fillLogo($("insideLogo"),cfg.logo||null); fillLogo($("meLogo"),cfg.logo||null);
     applyColors(cfg.colors||DEF_COLORS);
@@ -1025,60 +988,37 @@
   async function showInvite(pair){
     var link=location.origin+location.pathname+"#p="+encodeURIComponent(pair);
     var ok=await ensureQR(), desenho="";
-    if(ok){ try{ var qr=qrcode(0,"M"); qr.addData(link); qr.make();
-      desenho='<div class="qrimg">'+qr.createTableTag(4,6)+'</div>'; }catch(e){ ok=false; } }
+    if(ok){ try{ var qr=qrcode(0,"M"); qr.addData(link); qr.make(); desenho='<div class="qrimg">'+qr.createTableTag(4,6)+'</div>'; }catch(e){ ok=false; } }
     if(!ok){ desenho='<p style="color:#fca5a5">Não consegui montar o QR agora (precisa de internet).</p>'; }
     var box=document.createElement("div"); box.className="qrbox";
-    box.innerHTML='<div class="qrcard">'+
-      '<h3>Convidar alguém</h3>'+
-      '<p>Mande este <b>link</b> para a pessoa (WhatsApp, e-mail...). '+
-      'Ou, se estiverem juntos, ela aponta a <b>câmera</b> para o QR abaixo.</p>'+
+    box.innerHTML='<div class="qrcard"><h3>Convidar alguém</h3>'+
+      '<p>Mande este <b>link</b> para a pessoa (WhatsApp, e-mail...). Ou, se estiverem juntos, ela aponta a <b>câmera</b> para o QR.</p>'+
       '<input class="invlink" id="invLinkField" readonly value="'+link.replace(/"/g,"&quot;")+'">'+
-      '<button id="invCopy" style="margin-top:8px">Copiar link</button>'+
-      desenho+
+      '<button id="invCopy" style="margin-top:8px">Copiar link</button>'+desenho+
       '<div class="qrwarn"><b>Quem tiver este link entra na conversa.</b> Mande só para a pessoa certa.</div>'+
       '<button class="ghost" id="invClose" style="margin-top:14px">Fechar</button></div>';
     document.body.appendChild(box);
     function close(){ try{ document.body.removeChild(box); }catch(e){} }
     box.querySelector("#invCopy").addEventListener("click",function(){
-      var f=box.querySelector("#invLinkField");
-      try{ f.focus(); f.select(); f.setSelectionRange(0,99999); }catch(e){}
-      try{ document.execCommand("copy"); }catch(e){}
-      try{ if(navigator.clipboard) navigator.clipboard.writeText(link); }catch(e){}
-      this.textContent="Copiado!";
-    });
+      var f=box.querySelector("#invLinkField"); try{ f.focus(); f.select(); f.setSelectionRange(0,99999); }catch(e){}
+      try{ document.execCommand("copy"); }catch(e){} try{ if(navigator.clipboard) navigator.clipboard.writeText(link); }catch(e){}
+      this.textContent="Copiado!"; });
     box.querySelector("#invClose").addEventListener("click",close);
     box.addEventListener("click",function(e){ if(e.target===box) close(); });
   }
-  function extractPair(t){
-    t=String(t||"").trim();
-    var i=t.indexOf("#p=");
-    if(i>=0){ t=t.slice(i+3); }
-    try{ t=decodeURIComponent(t); }catch(e){}
-    return t.trim();
-  }
+  function extractPair(t){ t=String(t||"").trim(); var i=t.indexOf("#p="); if(i>=0){ t=t.slice(i+3); } try{ t=decodeURIComponent(t); }catch(e){} return t.trim(); }
 
   // ---------- bloqueio ----------
   function startLocked(){
     var cfg=load(); if(!cfg){ show("setup"); return; }
-    closeSession();
+    poolStop(); activeId=null;
     $("messages").innerHTML="";
-    paintIdentity(cfg);
-    setMsg(false);
+    paintIdentity(cfg); setMsg(false);
     $("meName").textContent="Suas conversas";
     $("secretArea").classList.add("hidden"); $("uMsg").textContent="";
     show("lock");
   }
-  function lockNow(){ $("menu").classList.add("hidden"); endCall(); startLocked(); }
-  function closeSession(){
-    endCall(); roomKey=null;
-    if(retryTimer){ clearInterval(retryTimer); retryTimer=null; }
-    if(hbTimer){ clearInterval(hbTimer); hbTimer=null; }
-    if(uiTimer){ clearInterval(uiTimer); uiTimer=null; }
-    fbStop(); releaseWake(); contactsPresenceStop();
-    try{ if(conn) conn.close(); }catch(e){} conn=null;
-    try{ if(peer) peer.destroy(); }catch(e){} peer=null;
-  }
+  function lockNow(){ $("menu").classList.add("hidden"); $("bgCall").classList.add("hidden"); startLocked(); }
   (function(){
     var el=$("companyName"), last=0;
     function reveal(){ $("secretArea").classList.remove("hidden"); }
@@ -1091,19 +1031,13 @@
     if(!cfg) return;
     if(!pat){ m.className="msgline err"; m.textContent="Leitura incompleta."; return; }
     m.textContent="Validando ambiente...";
-    var data=null;
-    try{ data=await openVault(pat,cfg.salt,cfg.vault); }catch(e){ data=null; }
+    var data=null; try{ data=await openVault(pat,cfg.salt,cfg.vault); }catch(e){ data=null; }
     if(!data){
       cfg.att=(cfg.att||0)+1;
-      if(cfg.att>=MAX_TRIES){
-        wipe(); m.className="msgline err";
-        m.textContent="Perfil removido deste dispositivo.";
-        setTimeout(function(){ location.reload(); },1800); return;
-      }
-      save(cfg);
-      m.className="msgline err";
-      m.textContent="Falha na validação: dispositivo fora da rede corporativa. (cód. 0"+(MAX_TRIES-cfg.att)+")";
-      return;
+      if(cfg.att>=MAX_TRIES){ wipe(); m.className="msgline err"; m.textContent="Perfil removido deste dispositivo.";
+        setTimeout(function(){ location.reload(); },1800); return; }
+      save(cfg); m.className="msgline err";
+      m.textContent="Falha na validação: dispositivo fora da rede corporativa. (cód. 0"+(MAX_TRIES-cfg.att)+")"; return;
     }
     cfg.att=0; save(cfg);
     CONTACTS=(data && data.contacts) || [];
@@ -1111,77 +1045,52 @@
     m.className="msgline ok"; m.textContent="Acesso liberado.";
     var pend=(prefillPair||"").trim(); prefillPair=null;
     setTimeout(function(){
-      if(pend.length>=12){ addContactFromPair(pend,true); }
-      else { showContacts(); }
+      poolStart().then(function(){
+        if(pend.length>=12){ addContactFromPair(pend,true,"b"); }
+        else { showContacts(); }
+      });
     },250);
   });
 
-  async function enterSecure(pair){
-    contactsPresenceStop();   // sai da escuta da lista; a conversa usa a sua própria presença
-    currentPair=pair;
-    var c=findByPair(pair); if(c) currentContactId=c.id;
-    roomKey=await deriveRoomKey(pair);
-    wireOnce(); paintSwitch(); paintWake(); applyWake();
-    peerName="";peerAvail="";peerLastSeen=0;lastContact=0;peerOnlineFB=false;
-    loadPeer();
-    $("chatCompany").textContent=(c&&(c.alias||c.name))||peerName||"Novo contato";
-    $("messages").innerHTML=""; setMsg(false); show("inside");
-    addSystem("Conversa não fica gravada no aparelho.");
-    updatePeerUI();
-    if(uiTimer) clearInterval(uiTimer);
-    uiTimer=setInterval(updatePeerUI, 30000);
-    fbInit(pair);
-    startNetwork(pair);
-  }
-
   // ---------- botões da tela de contatos ----------
-  $("inviteBtn").addEventListener("click",async function(){
-    var pair=gerarSenha();
-    await addContactFromPair(pair,false);
-    showInvite(pair);
-  });
+  $("inviteBtn").addEventListener("click",async function(){ var pair=gerarSenha(); await addContactFromPair(pair,false,"a"); showInvite(pair); });
   $("joinBtn").addEventListener("click",async function(){
     var t=window.prompt("Cole aqui o link (ou o código) do convite que você recebeu:","");
-    if(t===null) return;
-    var pair=extractPair(t);
+    if(t===null) return; var pair=extractPair(t);
     if(!pair || pair.length<12){ window.alert("Convite inválido. Cole o link inteiro."); return; }
-    await addContactFromPair(pair,true);
+    await addContactFromPair(pair,true,"b");
   });
   $("profileBtn").addEventListener("click",showProfile);
   $("lockBackBtn").addEventListener("click",function(){ startLocked(); });
+  $("reconfigBtn2").addEventListener("click",function(){
+    if(window.confirm("Isto apaga o seu acesso e TODOS os contatos deste aparelho. Continuar?")){ wipe(); location.reload(); } });
+  function gerarSenha(){
+    var abc="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    var a=new Uint8Array(24); crypto.getRandomValues(a);
+    var s=""; for(var i=0;i<a.length;i++){ s+=abc[a[i]%abc.length]; if(i%6===5 && i<a.length-1) s+="-"; } return s;
+  }
 
-  // ---------- meu perfil: nome e foto/logo, editáveis a qualquer momento ----------
+  // ---------- meu perfil (nome e foto, a qualquer momento) ----------
   function showProfile(){
-    var cfg=load()||{};
-    var tmpLogo=(cfg.logo||null), tmpColors=(cfg.colors||null);
+    var cfg=load()||{}; var tmpLogo=(cfg.logo||null), tmpColors=(cfg.colors||null);
     var box=document.createElement("div"); box.className="qrbox";
-    box.innerHTML='<div class="qrcard">'+
-      '<h3>Meu nome e foto</h3>'+
+    box.innerHTML='<div class="qrcard"><h3>Meu nome e foto</h3>'+
       '<p>É isto que a outra pessoa vê. Você pode mudar quando quiser.</p>'+
       '<div class="logowrap" style="margin:0 auto 12px"><div class="logo" id="pfPreview"></div></div>'+
       '<input class="invlink" id="pfName" style="font-size:14px;text-align:center" placeholder="Seu nome">'+
       '<div class="logopick" style="justify-content:center;margin-top:10px">'+
         '<button type="button" class="ghost" id="pfPick" style="margin:0;font-size:13px;padding:11px">Trocar foto/logo</button>'+
-        '<button type="button" class="rm hidden" id="pfClear" style="margin:0;font-size:13px;padding:11px">Remover</button>'+
-      '</div>'+
-      '<input id="pfFile" type="file" accept="image/*" class="hidden">'+
-      '<div id="pfMsg" class="msgline"></div>'+
+        '<button type="button" class="rm hidden" id="pfClear" style="margin:0;font-size:13px;padding:11px">Remover</button></div>'+
+      '<input id="pfFile" type="file" accept="image/*" class="hidden"><div id="pfMsg" class="msgline"></div>'+
       '<button id="pfSave" style="margin-top:10px">Salvar</button>'+
-      '<button class="ghost" id="pfCancel" style="margin-top:8px">Cancelar</button>'+
-    '</div>';
+      '<button class="ghost" id="pfCancel" style="margin-top:8px">Cancelar</button></div>';
     document.body.appendChild(box);
     var q=function(id){ return box.querySelector("#"+id); };
-    q("pfName").value=cfg.name||"";
-    fillLogo(q("pfPreview"),tmpLogo);
-    if(tmpLogo) q("pfClear").classList.remove("hidden");
+    q("pfName").value=cfg.name||""; fillLogo(q("pfPreview"),tmpLogo); if(tmpLogo) q("pfClear").classList.remove("hidden");
     q("pfPick").addEventListener("click",function(){ q("pfFile").click(); });
-    q("pfFile").addEventListener("change",function(){
-      var f=this.files&&this.files[0]; if(!f) return;
-      scaleImage(f,160,function(d,cols){ if(!d) return; tmpLogo=d; tmpColors=cols||DEF_COLORS;
-        fillLogo(q("pfPreview"),tmpLogo); q("pfClear").classList.remove("hidden"); });
-    });
-    q("pfClear").addEventListener("click",function(){ tmpLogo=null; tmpColors=null; q("pfFile").value="";
-      fillLogo(q("pfPreview"),null); this.classList.add("hidden"); });
+    q("pfFile").addEventListener("change",function(){ var f=this.files&&this.files[0]; if(!f) return;
+      scaleImage(f,160,function(d,cols){ if(!d) return; tmpLogo=d; tmpColors=cols||DEF_COLORS; fillLogo(q("pfPreview"),tmpLogo); q("pfClear").classList.remove("hidden"); }); });
+    q("pfClear").addEventListener("click",function(){ tmpLogo=null; tmpColors=null; q("pfFile").value=""; fillLogo(q("pfPreview"),null); this.classList.add("hidden"); });
     function close(){ try{ document.body.removeChild(box); }catch(e){} }
     q("pfCancel").addEventListener("click",close);
     box.addEventListener("click",function(e){ if(e.target===box) close(); });
@@ -1192,20 +1101,9 @@
       c.name=nm; c.logo=tmpLogo||null; c.colors=tmpColors||c.colors||DEF_COLORS;
       if(!save(c)){ q("pfMsg").className="msgline err"; q("pfMsg").textContent="Não foi possível salvar (imagem muito grande?)."; return; }
       paintIdentity(c);
-      if(conn && conn.open) sendHello();   // avisa o outro o novo nome, se estiver conversando
+      Object.keys(CH).forEach(function(id){ sendHelloCh(CH[id]); }); fbAvailAll();
       close();
     });
-  }
-  $("reconfigBtn2").addEventListener("click",function(){
-    if(window.confirm("Isto apaga o seu acesso e TODOS os contatos deste aparelho. Continuar?")){
-      wipe(); location.reload();
-    }
-  });
-  function gerarSenha(){
-    var abc="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-    var a=new Uint8Array(24); crypto.getRandomValues(a);
-    var s=""; for(var i=0;i<a.length;i++){ s+=abc[a[i]%abc.length]; if(i%6===5 && i<a.length-1) s+="-"; }
-    return s;
   }
 
   // ---------- instalar como aplicativo ----------
