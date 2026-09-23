@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0f172a">
 <title>Portal</title>
+<meta name="description" content="Acesso ao ambiente interno.">
+<meta property="og:title" content="Portal">
+<meta property="og:description" content="Acesso ao ambiente interno.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://wagnerjsmelillo-boop.github.io/portal-interno/livre/">
+<meta property="og:image" content="https://wagnerjsmelillo-boop.github.io/portal-interno/icon-512.png">
+<meta name="twitter:card" content="summary">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="../icon-192.png">
 <link rel="apple-touch-icon" href="../icon-192.png">
@@ -330,6 +337,10 @@
   var CFG_VERSION=1, MAX_TRIES=5, KDF_ROUNDS=200000;
   var DEF_COLORS={idle:"#1e3a8a", msg:"#38bdf8"};
   var MAX_LIVE=15;                 // limite de conexões simultâneas
+  // Endereço PÚBLICO fixo do app. O convite SEMPRE usa este endereço, mesmo que
+  // o app tenha sido aberto de um jeito estranho (de dentro do WhatsApp, de um
+  // arquivo, etc.). Assim o link nunca sai quebrado.
+  var APP_URL="https://wagnerjsmelillo-boop.github.io/portal-interno/livre/";
   var $=function(id){ return document.getElementById(id); };
   $("yr").textContent=new Date().getFullYear();
 
@@ -986,7 +997,7 @@
 
   // ---------- convite (link + QR) ----------
   async function showInvite(pair){
-    var link=location.origin+location.pathname+"#p="+encodeURIComponent(pair);
+    var link=APP_URL+"#p="+encodeURIComponent(pair);
     var ok=await ensureQR(), desenho="";
     if(ok){ try{ var qr=qrcode(0,"M"); qr.addData(link); qr.make(); desenho='<div class="qrimg">'+qr.createTableTag(4,6)+'</div>'; }catch(e){ ok=false; } }
     if(!ok){ desenho='<p style="color:#fca5a5">Não consegui montar o QR agora (precisa de internet).</p>'; }
