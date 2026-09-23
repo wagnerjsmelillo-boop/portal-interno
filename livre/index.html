@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f172a">
+<title>Portal</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="../icon-192.png">
+<link rel="apple-touch-icon" href="../icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root{
+    --bg:#0f172a; --panel:#1e293b; --panel2:#172033;
+    --line:#334155; --txt:#e2e8f0; --muted:#94a3b8;
+    --brand:#2563eb; --brand-d:#1d4ed8; --err:#ef4444; --ok:#22c55e;
+    --logo-idle:#1e3a8a; --logo-msg:#38bdf8;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:radial-gradient(1200px 600px at 50% -10%,#1b2a4a 0%,var(--bg) 55%);
+    color:var(--txt);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px}
+  .card{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);
+    border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+  .top{padding:26px 26px 6px;text-align:center}
+  .logowrap{position:relative;width:60px;height:60px;margin:0 auto 14px}
+  .logo{width:60px;height:60px;border-radius:16px;
+    background:linear-gradient(135deg,var(--brand),#0ea5e9);
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+    border:2px solid var(--logo-idle);box-shadow:0 6px 16px rgba(0,0,0,.35);
+    transition:border-color 1.2s ease}
+  .logo.msg{border-color:var(--logo-msg)}
+  .logo svg{width:30px;height:30px;fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .logo img{width:100%;height:100%;object-fit:contain;padding:6px}
+  .logo.hasimg{background:#fff !important}
+  .company{font-size:20px;font-weight:700;margin:2px 0;cursor:default;user-select:none}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:6px}
+  .body{padding:18px 26px 26px}
+  .status{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:10px;padding:12px 14px;margin:10px 0 16px;font-size:13px;color:var(--muted)}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--err);box-shadow:0 0 8px var(--err)}
+  .notice{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.35);color:#fecaca;
+    border-radius:10px;padding:14px;font-size:13px;line-height:1.5;text-align:center}
+  .field{margin:14px 0}
+  label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px}
+  input[type=text],input[type=password]{width:100%;padding:13px 14px;border-radius:10px;
+    border:1px solid var(--line);background:#0b1220;color:var(--txt);font-size:15px;outline:none}
+  input:focus{border-color:var(--brand)}
+  button{width:100%;padding:13px;border:0;border-radius:10px;background:var(--brand);color:#fff;
+    font-size:15px;font-weight:600;cursor:pointer;margin-top:6px}
+  button:active{background:var(--brand-d)}
+  .ghost{background:#334155}
+  .foot{padding:14px 26px 22px;text-align:center;color:#5b6b82;font-size:11px;border-top:1px solid var(--line)}
+  .foot span{cursor:pointer}
+  .hidden{display:none}
+  .msgline{font-size:13px;margin-top:10px;text-align:center;min-height:16px}
+  .msgline.err{color:#fca5a5}
+  .msgline.ok{color:#86efac}
+  .logopick{display:flex;gap:8px;margin-top:6px}
+  .logopick button{margin-top:0;font-size:13px;padding:11px}
+  .logopick .rm{flex:0 0 auto;background:#3a2130;color:#fca5a5}
+  .help{font-size:12px;line-height:1.6;color:var(--muted);background:var(--panel2);
+    border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin:0 0 10px}
+  .help b{color:var(--txt)}
+
+  /* ---- desenho (padrão) ---- */
+  .patwrap{position:relative;width:250px;height:250px;margin:8px auto 0;touch-action:none;user-select:none}
+  .patgrid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr)}
+  .patnode{display:flex;align-items:center;justify-content:center}
+  .patnode span{width:16px;height:16px;border-radius:50%;background:#2c3a4f;border:2px solid #475569;
+    transition:transform .15s, background .15s, border-color .15s}
+  .patnode.on span{background:var(--logo-msg);border-color:var(--logo-msg);transform:scale(1.3)}
+  .patlines{position:absolute;inset:0;pointer-events:none}
+  .patlines polyline,.patlines line{fill:none;stroke:var(--logo-msg);stroke-width:4;
+    stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+  .pathint{text-align:center;color:var(--muted);font-size:12px;margin-top:4px}
+
+  /* ---- contatos ---- */
+  .clist{display:flex;flex-direction:column;gap:8px}
+  .citem{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--panel2);
+    border:1px solid var(--line);border-radius:12px;cursor:pointer;text-align:left;color:var(--txt);
+    width:100%;margin:0;font-weight:500}
+  .citem .av{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--brand),#0ea5e9);
+    display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex:0 0 auto;font-size:16px}
+  .citem .cn{flex:1;min-width:0}
+  .citem .cn b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .citem .cn small{color:var(--muted);font-size:12px;font-weight:400}
+  .cempty{color:var(--muted);font-size:13px;text-align:center;padding:18px 6px;line-height:1.7}
+  .invlink{width:100%;padding:11px;border-radius:9px;border:1px solid var(--line);
+    background:#0b1220;color:var(--txt);font-size:12px;margin-top:4px}
+
+  /* ---- mensagens ---- */
+  .chat{display:flex;flex-direction:column;height:80vh;max-height:660px;position:relative}
+  .chat-head{display:flex;align-items:center;gap:8px;padding:12px 13px;border-bottom:1px solid var(--line)}
+  .chat-head .logowrap{width:40px;height:40px;margin:0}
+  .chat-head .logo{width:40px;height:40px;border-radius:11px}
+  .chat-head .logo svg{width:20px;height:20px}
+  .st .on{color:#86efac}
+  .peerbar{font-size:12px;color:var(--muted);padding:8px 13px;border-bottom:1px solid var(--line);
+    background:var(--panel2);line-height:1.45}
+  .peerbar b{color:#e2e8f0}
+  .peerbar .call{color:#fbbf24}
+  .chat-title{flex:1;min-width:0}
+  .chat-title .nm{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chat-title .st{font-size:11px;color:var(--muted)}
+  .iconbtn{width:auto;background:transparent;color:var(--muted);padding:4px 8px;margin:0;font-size:22px;line-height:1}
+  .iconbtn svg{width:21px;height:21px;fill:none;stroke:#94a3b8;stroke-width:1.8;display:block}
+  .messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+  .bubble{max-width:80%;padding:9px 12px;border-radius:13px;font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+  .bubble.me{align-self:flex-end;background:var(--brand);color:#fff;border-bottom-right-radius:4px}
+  .bubble.you{align-self:flex-start;background:var(--panel2);border:1px solid var(--line);border-bottom-left-radius:4px}
+  .bubble img{max-width:100%;border-radius:9px;display:block;margin-top:2px;cursor:pointer}
+  .bubble .tm{font-size:10px;opacity:.65;margin-top:3px;text-align:right}
+  .sysmsg{align-self:center;font-size:11px;color:var(--muted);background:var(--panel2);
+    border:1px solid var(--line);padding:5px 12px;border-radius:999px;text-align:center}
+  .composer{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line);align-items:center}
+  .composer input[type=text]{flex:1;margin:0}
+  .composer .cbtn{width:auto;margin:0;padding:12px 15px}
+  .composer .attach{background:#334155;padding:12px;width:auto;margin:0}
+  .composer .attach svg{width:20px;height:20px;stroke:#cbd5e1;fill:none;stroke-width:1.8;display:block}
+  .menu{position:absolute;top:56px;right:12px;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.5);overflow:hidden;z-index:6;min-width:255px}
+  .menu button{width:100%;text-align:left;background:transparent;color:var(--txt);border-radius:0;
+    padding:13px 16px;font-weight:500;font-size:14px;margin:0;border-bottom:1px solid var(--line)}
+  .menu button:last-child{border-bottom:0}
+  .swrow{display:flex;align-items:center;gap:10px}
+  .swrow .sl{flex:1;line-height:1.3}
+  .swrow .sl small{display:block;color:var(--muted);font-size:11px;font-weight:400}
+  .sw{width:42px;height:24px;border-radius:999px;background:#475569;position:relative;flex:0 0 auto;transition:background .2s}
+  .sw i{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s}
+  .sw.on{background:var(--ok)}
+  .sw.on i{left:21px}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);display:flex;align-items:center;
+    justify-content:center;z-index:50;padding:20px}
+  .lightbox img{max-width:100%;max-height:100%;border-radius:8px}
+  .qrbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:60;display:flex;
+    align-items:center;justify-content:center;padding:20px}
+  .qrcard{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:24px;max-width:360px;width:100%;text-align:center}
+  .qrcard h3{margin:0 0 6px;font-size:17px}
+  .qrcard p{margin:0 0 12px;font-size:12.5px;line-height:1.6;color:var(--muted)}
+  .qrimg{background:#fff;padding:14px;border-radius:12px;display:inline-block;line-height:0;margin-top:6px}
+  .qrimg table{border-collapse:collapse;border-spacing:0}
+  .qrimg td{width:5px;height:5px;padding:0}
+  .qrwarn{margin-top:14px;font-size:11.5px;line-height:1.55;color:#fde68a;
+    background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.35);
+    border-radius:9px;padding:10px 12px;text-align:left}
+  .callbar{display:flex;align-items:center;gap:10px;padding:10px 13px;background:var(--panel2);
+    border-bottom:1px solid var(--line);font-size:13px}
+  .callbar .ct{flex:1;min-width:0}
+  .callbar .ct b{display:block;font-size:13px}
+  .callbar .ct span{font-size:11px;color:var(--muted)}
+  .callbar button{width:auto;margin:0;padding:9px 13px;font-size:13px;border-radius:9px}
+  .btn-ok{background:var(--ok)}
+  .btn-no{background:#b91c1c}
+</style>
+</head>
+<body>
+  <div class="card">
+
+    <!-- ===== CONFIGURAÇÃO (só um Nome) ===== -->
+    <div id="setup" class="hidden">
+      <div class="top">
+        <div class="logowrap"><div class="logo" id="setupLogo"></div></div>
+        <div class="company">Criar seu acesso</div>
+        <div class="sub" id="setupSub">Primeiro acesso — defina seu nome</div>
+      </div>
+
+      <div class="body" id="setupStep1">
+        <div class="help hidden" id="conviteAviso"><b>Você recebeu um convite.</b>
+          Crie seu acesso abaixo — a conversa já vai ficar salva nos seus contatos.</div>
+        <div class="field">
+          <label>Seu nome (a outra pessoa vê este nome)</label>
+          <input id="cfgName" type="text" placeholder="Ex.: seu nome ou apelido" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Foto / logo (opcional)</label>
+          <div class="logopick">
+            <button type="button" id="cfgPickLogo" class="ghost">Escolher uma imagem</button>
+            <button type="button" id="cfgClearLogo" class="rm hidden">Remover</button>
+          </div>
+          <input id="cfgLogoFile" type="file" accept="image/*" class="hidden">
+        </div>
+        <button id="cfgContinue">Continuar</button>
+        <div id="cfgMsg" class="msgline"></div>
+      </div>
+
+      <div class="body hidden" id="setupStep2">
+        <div class="patwrap">
+          <svg class="patlines" id="sLines"></svg>
+          <div class="patgrid" id="sGrid"></div>
+        </div>
+        <div class="pathint" id="sHint">Ligue pelo menos 4 pontos</div>
+        <div id="sMsg" class="msgline"></div>
+        <button id="sBack" class="ghost">Voltar</button>
+      </div>
+
+      <div class="foot">O desenho é só deste aparelho e não sai daqui.</div>
+    </div>
+
+    <!-- ===== BLOQUEIO (disfarce) ===== -->
+    <div id="lock" class="hidden">
+      <div class="top">
+        <div class="logowrap"><div class="logo" id="lockLogo" data-msglogo></div></div>
+        <div class="company" id="companyName" title="">Portal</div>
+        <div class="sub">Sistema de Comunicação Interna</div>
+      </div>
+      <div class="body">
+        <div class="status">
+          <span class="dot"></span>
+          <span>Rede: <b style="color:#fca5a5">Externa (não autorizada)</b></span>
+        </div>
+        <div class="notice" id="lockNotice">
+          Acesso restrito.<br>
+          Este aplicativo só funciona dentro do ambiente corporativo da empresa.
+        </div>
+        <div id="secretArea" class="hidden">
+          <div class="patwrap">
+            <svg class="patlines" id="uLines"></svg>
+            <div class="patgrid" id="uGrid"></div>
+          </div>
+          <div id="uMsg" class="msgline"></div>
+        </div>
+      </div>
+      <div class="foot" id="lockFoot">© <span id="yr"></span> — Uso interno. Todos os direitos reservados.</div>
+    </div>
+
+    <!-- ===== CONTATOS (suas conversas) ===== -->
+    <div id="contacts" class="hidden">
+      <div class="top" style="padding-bottom:2px">
+        <div class="logowrap"><div class="logo" id="meLogo"></div></div>
+        <div class="company" id="meName">Suas conversas</div>
+        <div class="sub">Toque num contato para conversar</div>
+      </div>
+      <div class="body">
+        <div id="contactList" class="clist"></div>
+        <div id="contactsEmpty" class="cempty hidden">
+          Você ainda não tem contatos.<br>
+          Toque em <b>"Convidar alguém"</b> e mande o link para a pessoa.
+        </div>
+        <button id="inviteBtn" style="margin-top:14px">Convidar alguém</button>
+        <button id="joinBtn" class="ghost" style="margin-top:10px">Entrar por convite recebido</button>
+        <button id="profileBtn" class="ghost" style="margin-top:10px">Meu nome e foto</button>
+      </div>
+      <div class="foot">
+        <span id="lockBackBtn">Bloquear</span> &nbsp;·&nbsp; <span id="reconfigBtn2">Reconfigurar tudo</span>
+      </div>
+    </div>
+
+    <!-- ===== DENTRO (conversa) ===== -->
+    <div id="inside" class="hidden">
+      <div class="chat">
+        <div class="chat-head">
+          <button class="iconbtn" id="backBtn" title="Voltar aos contatos">
+            <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div class="logowrap"><div class="logo" id="insideLogo" data-msglogo></div></div>
+          <div class="chat-title">
+            <div class="nm" id="chatCompany">Contato</div>
+            <div class="st" id="connState">Iniciando...</div>
+          </div>
+          <button class="iconbtn" id="callBtn" title="Chamada de voz">
+            <svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .3 1.9.6 2.8a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.5 2.8.6a2 2 0 0 1 1.7 2z"/></svg>
+          </button>
+          <button class="iconbtn" id="menuBtn">&#8942;</button>
+        </div>
+
+        <div class="peerbar hidden" id="peerbar"></div>
+
+        <div class="callbar hidden" id="callBar">
+          <div class="ct"><b id="callTitle">Chamada</b><span id="callSub"></span></div>
+          <button id="callAccept" class="btn-ok hidden">Atender</button>
+          <button id="callEnd" class="btn-no">Encerrar</button>
+        </div>
+
+        <div class="messages" id="messages"></div>
+        <div class="composer">
+          <button class="attach" id="attachBtn" title="Enviar foto">
+            <svg viewBox="0 0 24 24"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7-7l8.5-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.6 1.6 0 0 1-2.3-2.3l7.8-7.8"/></svg>
+          </button>
+          <input id="msgInput" type="text" placeholder="Mensagem" autocomplete="off">
+          <button class="cbtn" id="sendBtn">Enviar</button>
+          <input id="photoFile" type="file" accept="image/*" class="hidden">
+        </div>
+
+        <div class="menu hidden" id="menu">
+          <button id="swLock">
+            <span class="swrow">
+              <span class="sl">Encerrar ao sair da tela
+                <small>Fecha a conversa e apaga a tela ao trocar de app ou desligar</small></span>
+              <span class="sw" id="swLockUI"><i></i></span>
+            </span>
+          </button>
+          <button id="wakeBtn">
+            <span class="swrow">
+              <span class="sl">Manter tela ligada
+                <small>Enquanto o app estiver aberto, a tela não apaga sozinha</small></span>
+              <span class="sw" id="wakeUI"><i></i></span>
+            </span>
+          </button>
+          <button id="availBtn">Minha disponibilidade</button>
+          <button id="inviteThisBtn">Mostrar o convite deste contato</button>
+          <button id="reconnectBtn">Reconectar</button>
+          <button id="backMenuBtn">Voltar aos contatos</button>
+          <button id="logoutBtn">Bloquear agora</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <audio id="remoteAudio" autoplay playsinline></audio>
+
+<!-- Firebase (só para presença: online, visto às, disponibilidade, chamou às).
+     As MENSAGENS não passam por aqui; continuam diretas e criptografadas. -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+
+<script>
+(function(){
+  "use strict";
+  var K={cfg:"cv_cfg_v1", dev:"cv_device_v1"};
+  var CFG_VERSION=1;
+  var MAX_TRIES=5, KDF_ROUNDS=200000;
+  var DEF_COLORS={idle:"#1e3a8a", msg:"#38bdf8"};
+  var $=function(id){ return document.getElementById(id); };
+  $("yr").textContent=new Date().getFullYear();
+
+  var SHIELD='<svg viewBox="0 0 24 24"><path d="M12 3l7 2.5v5c0 4.2-2.9 7.6-7 8.9-4.1-1.3-7-4.7-7-8.9v-5L12 3z"/><path d="M9.2 12.2l2 2 3.6-4"/></svg>';
+  var cryptoOK=!!(window.crypto && crypto.subtle);
+  var pendingLogo=null, pendingColors=null, pendingName="", firstPat=null;
+
+  var roomKey=null, peer=null, conn=null, myId=null, otherId=null, idA=null, idB=null;
+  var retryTimer=null, wired=false;
+  var localStream=null, currentCall=null, pendingCall=null, callTimer=null, callStart=0;
+  var lockOnHide=true, skipHideOnce=false;
+  var keepAwake=false, wakeSentinel=null;
+  var currentPair=null;
+
+  var CONTACTS=[], VK=null, currentContactId=null;   // lista de contatos e chave do cofre
+
+  // Convite recebido pelo link (#p=...). Não é enviado ao servidor; é apagado do endereço.
+  var prefillPair=null;
+  (function(){
+    try{
+      var h=location.hash||"";
+      if(h.indexOf("#p=")===0){
+        prefillPair=decodeURIComponent(h.slice(3));
+        history.replaceState(null,"",location.pathname+location.search);
+      }
+    }catch(e){ prefillPair=null; }
+  })();
+
+  // ---------- logo / cores ----------
+  function fillLogo(el,d){ if(!el) return; if(d){ el.classList.add("hasimg"); el.innerHTML='<img alt="" src="'+d+'">'; }
+    else { el.classList.remove("hasimg"); el.innerHTML=SHIELD; } }
+  function applyColors(c){ c=c||DEF_COLORS; var r=document.documentElement.style;
+    r.setProperty("--logo-idle",c.idle); r.setProperty("--logo-msg",c.msg); }
+  function setMsg(on){ var e=document.querySelectorAll("[data-msglogo]");
+    for(var i=0;i<e.length;i++){ e[i].classList.toggle("msg",!!on); } }
+  function hx(c){ return "#"+[c.r,c.g,c.b].map(function(v){ return Math.max(0,Math.min(255,v)).toString(16).padStart(2,"0"); }).join(""); }
+  function toDark(c,f){ return {r:Math.round(c.r*f+30*(1-f)),g:Math.round(c.g*f+41*(1-f)),b:Math.round(c.b*f+59*(1-f))}; }
+  function toVivid(c){ var mx=Math.max(c.r,c.g,c.b),f=mx<170?170/Math.max(mx,1):1.08;
+    return {r:Math.round(c.r*f),g:Math.round(c.g*f),b:Math.round(c.b*f)}; }
+  function pickColors(ctx,w,h){
+    var d; try{ d=ctx.getImageData(0,0,w,h).data; }catch(e){ return null; }
+    var b={},k,e2;
+    for(var i=0;i<d.length;i+=4){
+      var r=d[i],g=d[i+1],bl=d[i+2],a=d[i+3];
+      if(a<140) continue;
+      var mx=Math.max(r,g,bl),mn=Math.min(r,g,bl);
+      if(mx>238&&mn>238) continue; if(mx<28) continue;
+      k=(r>>4)+"_"+(g>>4)+"_"+(bl>>4);
+      e2=b[k]||(b[k]={n:0,r:0,g:0,b:0}); e2.n++; e2.r+=r; e2.g+=g; e2.b+=bl;
+    }
+    var arr=[]; for(k in b){ e2=b[k]; arr.push({n:e2.n,r:Math.round(e2.r/e2.n),g:Math.round(e2.g/e2.n),b:Math.round(e2.b/e2.n)}); }
+    if(!arr.length) return null;
+    arr.sort(function(x,y){ return y.n-x.n; });
+    var c1=arr[0],c2=null;
+    for(var j=1;j<arr.length;j++){ var dd=Math.abs(arr[j].r-c1.r)+Math.abs(arr[j].g-c1.g)+Math.abs(arr[j].b-c1.b); if(dd>110){ c2=arr[j]; break; } }
+    if(!c2) c2=c1;
+    return { idle:hx(toDark(c1,0.42)), msg:hx(toVivid(c2)) };
+  }
+  function scaleImage(file,max,cb){
+    var img=new Image(), url=URL.createObjectURL(file);
+    img.onload=function(){
+      var w=img.width,h=img.height,s=Math.min(max/w,max/h,1);
+      var cw=Math.max(1,Math.round(w*s)),ch=Math.max(1,Math.round(h*s));
+      var c=document.createElement("canvas"); c.width=cw; c.height=ch;
+      var x=c.getContext("2d",{willReadFrequently:true}); x.drawImage(img,0,0,cw,ch);
+      URL.revokeObjectURL(url); var cols=pickColors(x,cw,ch);
+      try{ cb(c.toDataURL("image/png"),cols); }catch(e){ cb(null,null); }
+    };
+    img.onerror=function(){ URL.revokeObjectURL(url); cb(null,null); }; img.src=url;
+  }
+  function scalePhoto(file,max,cb){
+    var img=new Image(), url=URL.createObjectURL(file);
+    img.onload=function(){
+      var w=img.width,h=img.height,s=Math.min(max/w,max/h,1);
+      var cw=Math.max(1,Math.round(w*s)),ch=Math.max(1,Math.round(h*s));
+      var c=document.createElement("canvas"); c.width=cw; c.height=ch;
+      c.getContext("2d").drawImage(img,0,0,cw,ch); URL.revokeObjectURL(url);
+      try{ cb(c.toDataURL("image/jpeg",0.8)); }catch(e){ cb(null); }
+    };
+    img.onerror=function(){ URL.revokeObjectURL(url); cb(null); }; img.src=url;
+  }
+
+  // ---------- utilidades ----------
+  function toHex(b){ var a=new Uint8Array(b),s=""; for(var i=0;i<a.length;i++){ s+=a[i].toString(16).padStart(2,"0"); } return s; }
+  function hexToU8(h){ var a=new Uint8Array(h.length/2); for(var i=0;i<a.length;i++){ a[i]=parseInt(h.substr(i*2,2),16); } return a; }
+  function abToB64(b){ var a=new Uint8Array(b),s=""; for(var i=0;i<a.length;i++){ s+=String.fromCharCode(a[i]); } return btoa(s); }
+  function b64ToU8(s){ var t=atob(s),a=new Uint8Array(t.length); for(var i=0;i<t.length;i++){ a[i]=t.charCodeAt(i); } return a; }
+  async function sha(s){ var d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)); return toHex(d); }
+  function rnd(n){ var a=new Uint8Array(n); if(window.crypto&&crypto.getRandomValues){crypto.getRandomValues(a);}
+    else {for(var i=0;i<n;i++)a[i]=Math.floor(Math.random()*256);} return toHex(a.buffer); }
+  function deviceId(){ try{ var d=localStorage.getItem(K.dev); if(!d){ d=rnd(32); localStorage.setItem(K.dev,d); } return d; }catch(e){ return "no-device"; } }
+  function load(){ try{ return JSON.parse(localStorage.getItem(K.cfg)||"null"); }catch(e){ return null; } }
+  function save(o){ try{ localStorage.setItem(K.cfg,JSON.stringify(o)); return true; }catch(e){ return false; } }
+  function wipe(){ try{ localStorage.removeItem(K.cfg); }catch(e){} }
+  function show(w){ ["setup","lock","inside","contacts"].forEach(function(id){ $(id).classList.add("hidden"); }); $(w).classList.remove("hidden"); }
+
+  // ---------- cofre (desenho abre o cofre) ----------
+  async function keyFromPattern(pat,salt){
+    var enc=new TextEncoder();
+    var base=await crypto.subtle.importKey("raw",enc.encode(pat+"::"+deviceId()),"PBKDF2",false,["deriveKey"]);
+    return crypto.subtle.deriveKey({name:"PBKDF2",salt:hexToU8(salt),iterations:KDF_ROUNDS,hash:"SHA-256"},
+      base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+  }
+  async function sealWith(key,obj){
+    var iv=crypto.getRandomValues(new Uint8Array(12));
+    var ct=await crypto.subtle.encrypt({name:"AES-GCM",iv:iv},key,new TextEncoder().encode(JSON.stringify(obj)));
+    return {iv:toHex(iv.buffer),ct:abToB64(ct)};
+  }
+  async function openVault(pat,salt,v){
+    var k=await keyFromPattern(pat,salt);
+    var pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:hexToU8(v.iv)},k,b64ToU8(v.ct).buffer);
+    return JSON.parse(new TextDecoder().decode(pt));
+  }
+  async function deriveRoomKey(p){
+    var enc=new TextEncoder();
+    var base=await crypto.subtle.importKey("raw",enc.encode(p),"PBKDF2",false,["deriveKey"]);
+    return crypto.subtle.deriveKey({name:"PBKDF2",salt:enc.encode("comunicador-sala-v1"),iterations:100000,hash:"SHA-256"},
+      base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+  }
+  async function encryptObj(o){
+    var iv=crypto.getRandomValues(new Uint8Array(12));
+    var ct=await crypto.subtle.encrypt({name:"AES-GCM",iv:iv},roomKey,new TextEncoder().encode(JSON.stringify(o)));
+    return {iv:toHex(iv.buffer),ct:abToB64(ct)};
+  }
+  async function decryptObj(p){
+    var pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:hexToU8(p.iv)},roomKey,b64ToU8(p.ct).buffer);
+    return JSON.parse(new TextDecoder().decode(pt));
+  }
+
+  // ---------- contatos (guardados no cofre) ----------
+  function findByPair(p){ for(var i=0;i<CONTACTS.length;i++){ if(CONTACTS[i].pair===p) return CONTACTS[i]; } return null; }
+  function contactById(id){ for(var i=0;i<CONTACTS.length;i++){ if(CONTACTS[i].id===id) return CONTACTS[i]; } return null; }
+  async function saveContacts(){
+    if(!VK) return; var cfg=load(); if(!cfg) return;
+    try{ cfg.vault=await sealWith(VK,{contacts:CONTACTS}); save(cfg); }catch(e){}
+  }
+  function setContactName(pair,name){
+    var c=findByPair(pair);
+    if(c && name && c.name!==name){ c.name=name; saveContacts(); renderContacts(); }
+  }
+  async function addContactFromPair(pair,autoOpen){
+    pair=(pair||"").trim(); if(pair.length<12) return null;
+    var c=findByPair(pair);
+    if(!c){ c={id:rnd(8),name:"",pair:pair,ts:Date.now()}; CONTACTS.push(c); await saveContacts(); }
+    renderContacts();
+    if(autoOpen){ openContact(c.id); } else { showContacts(); }
+    return c;
+  }
+  function openContact(id){ var c=contactById(id); if(!c) return; currentContactId=id; enterSecure(c.pair); }
+
+  function showContacts(){ renderContacts(); show("contacts"); }
+  function renderContacts(){
+    var box=$("contactList"); if(!box) return; box.innerHTML="";
+    if(!CONTACTS.length){ $("contactsEmpty").classList.remove("hidden"); return; }
+    $("contactsEmpty").classList.add("hidden");
+    CONTACTS.forEach(function(c){
+      var b=document.createElement("button"); b.className="citem";
+      var nm=c.name||"Novo contato";
+      var ini=(nm.trim().charAt(0)||"?").toUpperCase();
+      b.innerHTML='<span class="av"></span><span class="cn"><b></b><small></small></span>';
+      b.querySelector(".av").textContent=ini;
+      b.querySelector("b").textContent=nm;
+      b.querySelector("small").textContent=c.name?"Toque para conversar":"Aguardando a pessoa entrar";
+      b.addEventListener("click",function(){ openContact(c.id); });
+      box.appendChild(b);
+    });
+  }
+
+  // ---------- componente de desenho ----------
+  function makePattern(gridEl,svgEl,onDone){
+    var nodes=[],seq=[],drawing=false,C=[];
+    for(var i=0;i<9;i++){ var d=document.createElement("div"); d.className="patnode";
+      d.appendChild(document.createElement("span")); gridEl.appendChild(d); nodes.push(d); }
+    function centers(){
+      var gr=gridEl.getBoundingClientRect();
+      svgEl.setAttribute("viewBox","0 0 "+gr.width+" "+gr.height);
+      return nodes.map(function(n){ var r=n.getBoundingClientRect();
+        return {x:r.left-gr.left+r.width/2, y:r.top-gr.top+r.height/2}; });
+    }
+    function reset(){ seq=[]; svgEl.innerHTML=""; nodes.forEach(function(n){ n.classList.remove("on"); }); }
+    function draw(tmp){
+      var p="";
+      if(seq.length){
+        p='<polyline points="'+seq.map(function(i){ return C[i].x+","+C[i].y; }).join(" ")+'"/>';
+        if(tmp){ var l=C[seq[seq.length-1]]; p+='<line x1="'+l.x+'" y1="'+l.y+'" x2="'+tmp.x+'" y2="'+tmp.y+'"/>'; }
+      }
+      svgEl.innerHTML=p;
+    }
+    function hit(x,y){ for(var i=0;i<9;i++){ var dx=x-C[i].x,dy=y-C[i].y; if(dx*dx+dy*dy<27*27) return i; } return -1; }
+    function pos(e){ var r=gridEl.getBoundingClientRect(); var t=(e.touches&&e.touches[0])||e;
+      return {x:t.clientX-r.left, y:t.clientY-r.top}; }
+    function start(e){ e.preventDefault(); C=centers(); reset(); drawing=true; move(e); }
+    function move(e){
+      if(!drawing) return;
+      if(e.cancelable) e.preventDefault();
+      var p=pos(e), i=hit(p.x,p.y);
+      if(i>=0 && seq.indexOf(i)<0){ seq.push(i); nodes[i].classList.add("on"); }
+      draw(p);
+    }
+    function end(){
+      if(!drawing) return; drawing=false; draw(null);
+      var s=seq.join("-"), n=seq.length;
+      setTimeout(reset,350);
+      onDone(n>=4?s:null);
+    }
+    gridEl.addEventListener("mousedown",start);
+    window.addEventListener("mousemove",move);
+    window.addEventListener("mouseup",end);
+    gridEl.addEventListener("touchstart",start,{passive:false});
+    gridEl.addEventListener("touchmove",move,{passive:false});
+    gridEl.addEventListener("touchend",end);
+    return {reset:reset};
+  }
+
+  // ---------- mensagens ----------
+  function fmtTime(t){ var d=new Date(t); return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2); }
+  function addBubble(side,o){
+    var box=$("messages"), b=document.createElement("div"); b.className="bubble "+side;
+    if(o.type==="photo" && o.img){
+      if(o.text){ var cap=document.createElement("div"); cap.textContent=o.text; b.appendChild(cap); }
+      var im=document.createElement("img"); im.src=o.img;
+      im.addEventListener("click",function(){ openLightbox(o.img); }); b.appendChild(im);
+    } else { var tx=document.createElement("div"); tx.textContent=o.text||""; b.appendChild(tx); }
+    var tm=document.createElement("div"); tm.className="tm"; tm.textContent=fmtTime(o.t||Date.now()); b.appendChild(tm);
+    box.appendChild(b); box.scrollTop=box.scrollHeight;
+  }
+  function addSystem(t){ var box=$("messages"),s=document.createElement("div"); s.className="sysmsg"; s.textContent=t;
+    box.appendChild(s); box.scrollTop=box.scrollHeight; }
+  function openLightbox(src){
+    var lb=document.createElement("div"); lb.className="lightbox";
+    var im=document.createElement("img"); im.src=src; lb.appendChild(im);
+    lb.addEventListener("click",function(){ document.body.removeChild(lb); });
+    document.body.appendChild(lb);
+  }
+  function insideVisible(){ return !$("inside").classList.contains("hidden"); }
+  function contactsVisible(){ return !$("contacts").classList.contains("hidden"); }
+  function onIncoming(o){ addBubble("you",o); if(document.hidden || !insideVisible()){ setMsg(true); } }
+  function setConn(t){ $("connState").textContent=t; }
+
+  // ---------- rede ----------
+  function loadScript(u){ return new Promise(function(res,rej){ var s=document.createElement("script");
+    s.src=u; s.async=true; s.onload=function(){res();}; s.onerror=function(){rej(new Error("x"));};
+    document.head.appendChild(s); }); }
+  async function ensurePeer(){
+    if(window.Peer) return true;
+    var urls=["https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js",
+              "https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js",
+              "https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"];
+    for(var i=0;i<urls.length;i++){ try{ await loadScript(urls[i]); if(window.Peer) return true; }catch(e){} }
+    return false;
+  }
+  async function ensureQR(){
+    if(window.qrcode) return true;
+    var urls=["https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js",
+              "https://unpkg.com/qrcode-generator@1.4.4/qrcode.js",
+              "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"];
+    for(var i=0;i<urls.length;i++){ try{ await loadScript(urls[i]); if(window.qrcode) return true; }catch(e){} }
+    return false;
+  }
+
+  // Servidores para a VOZ atravessar redes difíceis (celular/operadora, NAT).
+  // STUN só descobre o IP; TURN retransmite quando o caminho direto é bloqueado.
+  // (TURN público gratuito — ajuda muito, mas pode ter limite em horários de pico.)
+  var ICE=[
+    {urls:"stun:stun.l.google.com:19302"},
+    {urls:"stun:stun1.l.google.com:19302"},
+    {urls:"turn:openrelay.metered.ca:80", username:"openrelayproject", credential:"openrelayproject"},
+    {urls:"turn:openrelay.metered.ca:443", username:"openrelayproject", credential:"openrelayproject"},
+    {urls:"turn:openrelay.metered.ca:443?transport=tcp", username:"openrelayproject", credential:"openrelayproject"}
+  ];
+  async function startNetwork(pair){
+    setConn("Conectando...");
+    if(!await ensurePeer()){ setConn("Sem conexão com a rede"); return; }
+    idA="pc"+(await sha(pair+":a")).slice(0,24);
+    idB="pc"+(await sha(pair+":b")).slice(0,24);
+    register(idA,idB);
+  }
+  function register(mine,other){
+    myId=mine; otherId=other;
+    try{ if(peer) peer.destroy(); }catch(e){}
+    try{ peer=new Peer(mine,{debug:0, config:{iceServers:ICE}}); }catch(e){ setConn("Sem conexão com a rede"); return; }
+    peer.on("open",function(){ setConn("Aguardando o outro aparelho"); if(mine===idB) tryConnect(); startRetry(); });
+    peer.on("connection",function(c){ bindConn(c); });
+    peer.on("call",function(c){ onIncomingCall(c); });
+    peer.on("disconnected",function(){ setConn("Reconectando..."); try{ peer.reconnect(); }catch(e){} });
+    peer.on("error",function(err){
+      var t=err&&err.type;
+      if(t==="unavailable-id" && mine===idA){ register(idB,idA); return; }
+      if(t==="peer-unavailable"){ setConn("Aguardando o outro aparelho"); return; }
+      if(t==="network"||t==="server-error"){ setConn("Rede instável"); }
+    });
+  }
+  function tryConnect(){ if(conn&&conn.open) return; try{ bindConn(peer.connect(otherId,{reliable:true})); }catch(e){} }
+  function startRetry(){
+    if(retryTimer) clearInterval(retryTimer);
+    retryTimer=setInterval(function(){
+      if(!peer||peer.destroyed) return;
+      if(conn&&conn.open) return;
+      if(myId===idB) tryConnect();
+    },5000);
+  }
+
+  // ---------- presença ao vivo (o cartão trocado no ar + guardado local) ----------
+  var peerName="", peerAvail="", peerLastSeen=0, lastContact=0, hbTimer=null, uiTimer=null;
+  function peerKey(){ return "cv_peer_"+(currentContactId||"x"); }
+  function loadPeer(){
+    peerName="";peerAvail="";peerLastSeen=0;lastContact=0;
+    try{ var p=JSON.parse(localStorage.getItem(peerKey())||"null"); if(p){
+      peerName=p.name||""; peerAvail=p.avail||""; peerLastSeen=p.lastSeen||0; lastContact=p.lastMsg||0; } }catch(e){}
+  }
+  function savePeer(){
+    try{ localStorage.setItem(peerKey(), JSON.stringify({name:peerName,avail:peerAvail,lastSeen:peerLastSeen,lastMsg:lastContact})); }catch(e){}
+  }
+  function fmtHM(t){ var d=new Date(t); return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2); }
+  function fmtWhen(t){
+    if(!t) return "";
+    var d=new Date(t), h=new Date(); var hoje=d.toDateString()===h.toDateString();
+    return (hoje?"hoje":("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2))+" "+fmtHM(t);
+  }
+  function myName(){ var c=load(); return (c&&c.name)||"Contato"; }
+  function myAvail(){ var c=load(); return (c&&c.avail)||""; }
+
+  async function sendCtl(o){
+    if(!roomKey || !conn || !conn.open) return;
+    try{ conn.send(await encryptObj(o)); }catch(e){}
+  }
+  function sendHello(){ sendCtl({t:"hello", name:myName(), avail:myAvail(), ts:Date.now()}); }
+
+  // ---- presença offline (Firebase): só metadados, nunca mensagens ----
+  var FB_CFG={
+    apiKey:"AIzaSyAYkGkibjEBZEqzQHN4RY3p3nhmXQa7q2Q",
+    authDomain:"portal-interno-cd2a8.firebaseapp.com",
+    databaseURL:"https://portal-interno-cd2a8-default-rtdb.firebaseio.com",
+    projectId:"portal-interno-cd2a8",
+    storageBucket:"portal-interno-cd2a8.firebasestorage.app",
+    messagingSenderId:"93288022454",
+    appId:"1:93288022454:web:99e1ddfb77a26067b20117"
+  };
+  var fbApp=null, fbRoomRef=null, fbMeRef=null, fbClientId="", peerOnlineFB=false;
+  function fbClient(){
+    if(fbClientId) return fbClientId;
+    try{ fbClientId=localStorage.getItem("cv_fbid")||""; }catch(e){}
+    if(!fbClientId){
+      fbClientId="c"+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+      try{ localStorage.setItem("cv_fbid",fbClientId); }catch(e){}
+    }
+    return fbClientId;
+  }
+  async function fbInit(pair){
+    if(typeof firebase==="undefined") return;
+    try{
+      if(!fbApp) fbApp=(firebase.apps&&firebase.apps.length)?firebase.app():firebase.initializeApp(FB_CFG);
+      var room=(await sha(pair+":presenca")).slice(0,32);
+      var db=firebase.database(), me=fbClient(), TS=firebase.database.ServerValue.TIMESTAMP;
+      fbRoomRef=db.ref("p/"+room);
+      fbMeRef=db.ref("p/"+room+"/"+me);
+      fbMeRef.update({ name:myName(), avail:myAvail(), online:true, lastSeen:TS });
+      fbMeRef.onDisconnect().update({ online:false, lastSeen:TS });
+      fbRoomRef.on("value",function(snap){
+        var v=snap.val()||{}, other=null;
+        for(var k in v){ if(k!==me){ other=v[k]; break; } }
+        if(other){
+          peerOnlineFB=!!other.online;
+          if(other.name){ peerName=other.name; setContactName(currentPair,other.name); }
+          if(typeof other.avail==="string") peerAvail=other.avail;
+          if(other.lastSeen && other.lastSeen>peerLastSeen) peerLastSeen=other.lastSeen;
+          if(other.lastKnock && other.lastKnock>lastContact) lastContact=other.lastKnock;
+          savePeer(); updatePeerUI();
+        }
+      });
+    }catch(e){}
+  }
+  function fbKnock(){ try{ if(fbMeRef) fbMeRef.update({ lastKnock:firebase.database.ServerValue.TIMESTAMP }); }catch(e){} }
+  function fbAvail(){ try{ if(fbMeRef) fbMeRef.update({ avail:myAvail() }); }catch(e){} }
+  function fbStop(){
+    try{ if(fbRoomRef) fbRoomRef.off(); }catch(e){}
+    try{ if(fbMeRef){ fbMeRef.onDisconnect().cancel();
+      fbMeRef.update({ online:false, lastSeen:firebase.database.ServerValue.TIMESTAMP }); } }catch(e){}
+    fbRoomRef=null; fbMeRef=null; peerOnlineFB=false;
+  }
+
+  function updatePeerUI(){
+    var online=!!(conn && conn.open) || peerOnlineFB;
+    var c=findByPair(currentPair), nm=peerName||(c&&c.name)||"Novo contato";
+    $("chatCompany").textContent=nm;
+    var st=$("connState");
+    if(online){ st.innerHTML='<span class="on">online</span>'; }
+    else { st.textContent = "offline"+(peerLastSeen?(" · visto "+fmtWhen(peerLastSeen)):""); }
+    var bar=$("peerbar"), parts=[];
+    if(peerAvail) parts.push("<b>Disponível:</b> "+peerAvail.replace(/[<>]/g,""));
+    if(lastContact) parts.push('<span class="call">chamou às '+fmtHM(lastContact)+'</span>');
+    if(parts.length){ bar.innerHTML=parts.join("&nbsp;&nbsp;·&nbsp;&nbsp;"); bar.classList.remove("hidden"); }
+    else bar.classList.add("hidden");
+  }
+  function onPeerData(o){
+    if(o && (o.t==="hello" || o.t==="ping")){
+      peerLastSeen=Date.now();
+      if(o.name){ peerName=o.name; setContactName(currentPair,o.name); }
+      if(typeof o.avail==="string") peerAvail=o.avail;
+      if(o.t==="hello") sendCtl({t:"ping", ts:Date.now()});
+      savePeer(); updatePeerUI(); return true;
+    }
+    return false;
+  }
+  function bindConn(c){
+    conn=c;
+    c.on("open",function(){
+      setConn("Conectado"); addSystem("Canal seguro estabelecido.");
+      peerLastSeen=Date.now(); savePeer(); updatePeerUI();
+      sendHello();
+      if(hbTimer) clearInterval(hbTimer);
+      hbTimer=setInterval(function(){ if(conn&&conn.open) sendCtl({t:"ping",ts:Date.now()}); },15000);
+    });
+    c.on("data",async function(p){
+      if(!roomKey) return;
+      try{ var o=await decryptObj(p); if(onPeerData(o)) return;
+        lastContact=Date.now(); savePeer(); onIncoming(o); }catch(e){}
+    });
+    c.on("close",function(){
+      conn=null; if(hbTimer){ clearInterval(hbTimer); hbTimer=null; }
+      peerLastSeen=Date.now(); savePeer(); updatePeerUI();
+    });
+    c.on("error",function(){});
+  }
+  async function wireSend(o){
+    addBubble("me",o);
+    fbKnock();
+    if(!roomKey) return;
+    try{ var p=await encryptObj(o); if(conn&&conn.open) conn.send(p); }catch(e){}
+  }
+
+  // ---------- voz ----------
+  function showCallBar(t,s,acc){ $("callTitle").textContent=t; $("callSub").textContent=s||"";
+    $("callAccept").classList.toggle("hidden",!acc); $("callBar").classList.remove("hidden"); }
+  function hideCallBar(){ $("callBar").classList.add("hidden"); }
+  function startTimer(){
+    callStart=Date.now(); if(callTimer) clearInterval(callTimer);
+    callTimer=setInterval(function(){ var s=Math.floor((Date.now()-callStart)/1000);
+      $("callSub").textContent=("0"+Math.floor(s/60)).slice(-2)+":"+("0"+(s%60)).slice(-2); },1000);
+  }
+  async function getMic(){
+    skipHideOnce=true;
+    try{ return await navigator.mediaDevices.getUserMedia({audio:true}); }
+    catch(e){ addSystem("Microfone não autorizado."); return null; }
+  }
+  async function startCall(){
+    if(!conn||!conn.open){ addSystem("O outro aparelho não está conectado."); return; }
+    if(currentCall||pendingCall) return;
+    var st=await getMic(); if(!st) return;
+    localStream=st; showCallBar("Chamando...","",false);
+    try{ bindCall(peer.call(otherId,localStream)); }catch(e){ endCall(); }
+  }
+  function onIncomingCall(c){ pendingCall=c; showCallBar("Chamada recebida","",true); setMsg(true); }
+  async function acceptCall(){
+    if(!pendingCall) return;
+    var st=await getMic(); if(!st) return;
+    localStream=st; var c=pendingCall; pendingCall=null;
+    try{ c.answer(localStream); bindCall(c); }catch(e){ endCall(); }
+  }
+  function bindCall(c){
+    currentCall=c;
+    c.on("stream",function(rs){ var a=$("remoteAudio"); a.srcObject=rs; a.play().catch(function(){});
+      showCallBar("Em chamada","00:00",false); startTimer(); });
+    c.on("close",endCall); c.on("error",endCall);
+  }
+  function endCall(){
+    try{ if(currentCall) currentCall.close(); }catch(e){}
+    try{ if(pendingCall) pendingCall.close(); }catch(e){}
+    currentCall=null; pendingCall=null;
+    if(callTimer){ clearInterval(callTimer); callTimer=null; }
+    try{ if(localStream) localStream.getTracks().forEach(function(t){ t.stop(); }); }catch(e){}
+    localStream=null;
+    try{ $("remoteAudio").srcObject=null; }catch(e){}
+    hideCallBar();
+  }
+
+  // ---------- eventos do bate-papo ----------
+  function sendText(){ var t=$("msgInput").value.trim(); if(!t) return;
+    wireSend({type:"text",text:t,t:Date.now()}); $("msgInput").value=""; }
+  function paintSwitch(){ $("swLockUI").classList.toggle("on", !!lockOnHide); }
+  function paintWake(){ $("wakeUI").classList.toggle("on", !!keepAwake); }
+
+  // ---- manter tela ligada (Wake Lock) ----
+  var wakeSupported = ("wakeLock" in navigator);
+  async function acquireWake(){
+    if(!wakeSupported || !keepAwake) return;
+    if(document.hidden || !insideVisible()) return;
+    try{ wakeSentinel = await navigator.wakeLock.request("screen");
+      wakeSentinel.addEventListener("release", function(){ wakeSentinel=null; });
+    }catch(e){ wakeSentinel=null; }
+  }
+  async function releaseWake(){ try{ if(wakeSentinel){ await wakeSentinel.release(); } }catch(e){} wakeSentinel=null; }
+  function applyWake(){ if(keepAwake) acquireWake(); else releaseWake(); }
+
+  function wireOnce(){
+    if(wired) return; wired=true;
+    $("sendBtn").addEventListener("click",sendText);
+    $("msgInput").addEventListener("keydown",function(e){ if(e.key==="Enter") sendText(); });
+    $("attachBtn").addEventListener("click",function(){ skipHideOnce=true; $("photoFile").click(); });
+    $("photoFile").addEventListener("change",function(){
+      var f=this.files&&this.files[0]; this.value=""; if(!f) return;
+      scalePhoto(f,1024,function(d){ if(!d) return;
+        wireSend({type:"photo",img:d,text:$("msgInput").value.trim(),t:Date.now()}); $("msgInput").value=""; });
+    });
+    $("callBtn").addEventListener("click",startCall);
+    $("callAccept").addEventListener("click",acceptCall);
+    $("callEnd").addEventListener("click",endCall);
+    $("backBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); closeSession(); showContacts(); });
+    $("menuBtn").addEventListener("click",function(){ $("menu").classList.toggle("hidden"); });
+    document.addEventListener("click",function(e){
+      if(!$("menu").classList.contains("hidden") && !$("menu").contains(e.target) && e.target!==$("menuBtn")){
+        $("menu").classList.add("hidden"); }
+    });
+    $("swLock").addEventListener("click",function(e){
+      e.stopPropagation();
+      lockOnHide=!lockOnHide; paintSwitch();
+      var c=load(); if(c){ c.lockOnHide=lockOnHide; save(c); }
+    });
+    $("wakeBtn").addEventListener("click",function(e){
+      e.stopPropagation();
+      if(!wakeSupported){ keepAwake=false; paintWake();
+        addSystem("Este aparelho não permite manter a tela ligada."); return; }
+      keepAwake=!keepAwake; paintWake();
+      var c=load(); if(c){ c.keepAwake=keepAwake; save(c); }
+      applyWake();
+    });
+    $("availBtn").addEventListener("click",function(){
+      $("menu").classList.add("hidden");
+      var atual=myAvail();
+      var txt=window.prompt("Escreva quando você costuma ficar disponível (a outra pessoa vê isto):", atual||"");
+      if(txt===null) return;
+      txt=String(txt).slice(0,60);
+      var c=load(); if(c){ c.avail=txt; save(c); }
+      sendHello(); fbAvail();
+    });
+    $("inviteThisBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); if(currentPair) showInvite(currentPair); });
+    $("reconnectBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); setConn("Reconectando..."); tryConnect(); });
+    $("backMenuBtn").addEventListener("click",function(){ $("menu").classList.add("hidden"); closeSession(); showContacts(); });
+    $("logoutBtn").addEventListener("click",function(){ lockNow(); });
+    window.addEventListener("focus",function(){ if(insideVisible()) setMsg(false); });
+    document.addEventListener("visibilitychange",function(){
+      if(document.hidden){
+        if(skipHideOnce){ skipHideOnce=false; return; }
+        if(lockOnHide && (insideVisible()||contactsVisible()) && !currentCall){ lockNow(); }
+      } else { if(insideVisible()){ setMsg(false); applyWake(); } }
+    });
+  }
+
+  // ---------- configuração (só Nome + desenho) ----------
+  fillLogo($("setupLogo"),null);
+  if(prefillPair){ $("conviteAviso").classList.remove("hidden"); }
+  $("cfgPickLogo").addEventListener("click",function(){ $("cfgLogoFile").click(); });
+  $("cfgLogoFile").addEventListener("change",function(){
+    var f=this.files&&this.files[0]; if(!f) return;
+    scaleImage(f,160,function(d,cols){ if(!d) return;
+      pendingLogo=d; pendingColors=cols||DEF_COLORS;
+      fillLogo($("setupLogo"),pendingLogo); applyColors(pendingColors);
+      $("cfgClearLogo").classList.remove("hidden"); });
+  });
+  $("cfgClearLogo").addEventListener("click",function(){
+    pendingLogo=null; pendingColors=null; $("cfgLogoFile").value="";
+    fillLogo($("setupLogo"),null); applyColors(DEF_COLORS); this.classList.add("hidden");
+  });
+  function nomeOk(){
+    var m=$("cfgMsg"); m.className="msgline"; m.textContent="";
+    pendingName=$("cfgName").value.trim();
+    if(!pendingName){ m.className="msgline err"; m.textContent="Escreva o seu nome."; return false; }
+    return true;
+  }
+  function irParaDesenho(){
+    firstPat=null;
+    $("setupStep1").classList.add("hidden"); $("setupStep2").classList.remove("hidden");
+    $("setupSub").textContent="Crie o seu desenho de acesso";
+    $("sHint").textContent="Ligue pelo menos 4 pontos"; $("sMsg").textContent="";
+  }
+  $("cfgContinue").addEventListener("click",function(){ if(nomeOk()) irParaDesenho(); });
+  $("sBack").addEventListener("click",function(){
+    $("setupStep2").classList.add("hidden"); $("setupStep1").classList.remove("hidden");
+    $("setupSub").textContent="Primeiro acesso — defina seu nome";
+  });
+
+  makePattern($("sGrid"),$("sLines"),async function(pat){
+    var m=$("sMsg"); m.className="msgline";
+    if(!pat){ m.className="msgline err"; m.textContent="Use pelo menos 4 pontos."; return; }
+    if(!firstPat){ firstPat=pat; $("sHint").textContent="Repita o mesmo desenho para confirmar";
+      m.className="msgline ok"; m.textContent="Agora repita."; return; }
+    if(pat!==firstPat){ firstPat=null; $("sHint").textContent="Ligue pelo menos 4 pontos";
+      m.className="msgline err"; m.textContent="Os desenhos não conferem. Comece de novo."; return; }
+    m.className="msgline"; m.textContent="Salvando...";
+    var salt=rnd(16);
+    CONTACTS=[];
+    var pend=(prefillPair||"").trim(); prefillPair=null;
+    if(pend.length>=12){ CONTACTS.push({id:rnd(8),name:"",pair:pend,ts:Date.now()}); }
+    VK=await keyFromPattern(pat,salt);
+    var vault=null; try{ vault=await sealWith(VK,{contacts:CONTACTS}); }catch(e){ vault=null; }
+    var ok = vault && save({v:CFG_VERSION,name:pendingName,logo:pendingLogo||null,colors:pendingColors||DEF_COLORS,
+      salt:salt,vault:vault,att:0,lockOnHide:true,keepAwake:false});
+    if(!ok){ m.className="msgline err"; m.textContent="Não foi possível salvar (imagem muito grande?)."; return; }
+    m.className="msgline ok"; m.textContent="Pronto!";
+    var openPair = CONTACTS.length?CONTACTS[0].pair:null;
+    var openId = CONTACTS.length?CONTACTS[0].id:null;
+    setTimeout(function(){
+      paintIdentity(load());
+      if(openPair){ currentContactId=openId; enterSecure(openPair); }
+      else { showContacts(); }
+    },400);
+  });
+
+  // ---------- identidade visual ----------
+  function paintIdentity(cfg){
+    cfg=cfg||load()||{};
+    var nm=cfg.name||"Portal";
+    $("companyName").textContent=nm; $("companyName").title=nm;
+    fillLogo($("lockLogo"),cfg.logo||null); fillLogo($("insideLogo"),cfg.logo||null); fillLogo($("meLogo"),cfg.logo||null);
+    applyColors(cfg.colors||DEF_COLORS);
+    lockOnHide=(cfg.lockOnHide!==false); paintSwitch();
+    keepAwake=(cfg.keepAwake===true); paintWake();
+  }
+
+  // ---------- convite (link + QR) ----------
+  async function showInvite(pair){
+    var link=location.origin+location.pathname+"#p="+encodeURIComponent(pair);
+    var ok=await ensureQR(), desenho="";
+    if(ok){ try{ var qr=qrcode(0,"M"); qr.addData(link); qr.make();
+      desenho='<div class="qrimg">'+qr.createTableTag(4,6)+'</div>'; }catch(e){ ok=false; } }
+    if(!ok){ desenho='<p style="color:#fca5a5">Não consegui montar o QR agora (precisa de internet).</p>'; }
+    var box=document.createElement("div"); box.className="qrbox";
+    box.innerHTML='<div class="qrcard">'+
+      '<h3>Convidar alguém</h3>'+
+      '<p>Mande este <b>link</b> para a pessoa (WhatsApp, e-mail...). '+
+      'Ou, se estiverem juntos, ela aponta a <b>câmera</b> para o QR abaixo.</p>'+
+      '<input class="invlink" id="invLinkField" readonly value="'+link.replace(/"/g,"&quot;")+'">'+
+      '<button id="invCopy" style="margin-top:8px">Copiar link</button>'+
+      desenho+
+      '<div class="qrwarn"><b>Quem tiver este link entra na conversa.</b> Mande só para a pessoa certa.</div>'+
+      '<button class="ghost" id="invClose" style="margin-top:14px">Fechar</button></div>';
+    document.body.appendChild(box);
+    function close(){ try{ document.body.removeChild(box); }catch(e){} }
+    box.querySelector("#invCopy").addEventListener("click",function(){
+      var f=box.querySelector("#invLinkField");
+      try{ f.focus(); f.select(); f.setSelectionRange(0,99999); }catch(e){}
+      try{ document.execCommand("copy"); }catch(e){}
+      try{ if(navigator.clipboard) navigator.clipboard.writeText(link); }catch(e){}
+      this.textContent="Copiado!";
+    });
+    box.querySelector("#invClose").addEventListener("click",close);
+    box.addEventListener("click",function(e){ if(e.target===box) close(); });
+  }
+  function extractPair(t){
+    t=String(t||"").trim();
+    var i=t.indexOf("#p=");
+    if(i>=0){ t=t.slice(i+3); }
+    try{ t=decodeURIComponent(t); }catch(e){}
+    return t.trim();
+  }
+
+  // ---------- bloqueio ----------
+  function startLocked(){
+    var cfg=load(); if(!cfg){ show("setup"); return; }
+    closeSession();
+    $("messages").innerHTML="";
+    paintIdentity(cfg);
+    setMsg(false);
+    $("meName").textContent="Suas conversas";
+    $("secretArea").classList.add("hidden"); $("uMsg").textContent="";
+    show("lock");
+  }
+  function lockNow(){ $("menu").classList.add("hidden"); endCall(); startLocked(); }
+  function closeSession(){
+    endCall(); roomKey=null;
+    if(retryTimer){ clearInterval(retryTimer); retryTimer=null; }
+    if(hbTimer){ clearInterval(hbTimer); hbTimer=null; }
+    if(uiTimer){ clearInterval(uiTimer); uiTimer=null; }
+    fbStop(); releaseWake();
+    try{ if(conn) conn.close(); }catch(e){} conn=null;
+    try{ if(peer) peer.destroy(); }catch(e){} peer=null;
+  }
+  (function(){
+    var el=$("companyName"), last=0;
+    function reveal(){ $("secretArea").classList.remove("hidden"); }
+    el.addEventListener("dblclick",reveal);
+    el.addEventListener("touchend",function(e){ var n=Date.now(); if(n-last<350){ e.preventDefault(); reveal(); } last=n; },{passive:false});
+  })();
+
+  makePattern($("uGrid"),$("uLines"),async function(pat){
+    var cfg=load(), m=$("uMsg"); m.className="msgline";
+    if(!cfg) return;
+    if(!pat){ m.className="msgline err"; m.textContent="Leitura incompleta."; return; }
+    m.textContent="Validando ambiente...";
+    var data=null;
+    try{ data=await openVault(pat,cfg.salt,cfg.vault); }catch(e){ data=null; }
+    if(!data){
+      cfg.att=(cfg.att||0)+1;
+      if(cfg.att>=MAX_TRIES){
+        wipe(); m.className="msgline err";
+        m.textContent="Perfil removido deste dispositivo.";
+        setTimeout(function(){ location.reload(); },1800); return;
+      }
+      save(cfg);
+      m.className="msgline err";
+      m.textContent="Falha na validação: dispositivo fora da rede corporativa. (cód. 0"+(MAX_TRIES-cfg.att)+")";
+      return;
+    }
+    cfg.att=0; save(cfg);
+    CONTACTS=(data && data.contacts) || [];
+    VK=await keyFromPattern(pat,cfg.salt);
+    m.className="msgline ok"; m.textContent="Acesso liberado.";
+    var pend=(prefillPair||"").trim(); prefillPair=null;
+    setTimeout(function(){
+      if(pend.length>=12){ addContactFromPair(pend,true); }
+      else { showContacts(); }
+    },250);
+  });
+
+  async function enterSecure(pair){
+    currentPair=pair;
+    var c=findByPair(pair); if(c) currentContactId=c.id;
+    roomKey=await deriveRoomKey(pair);
+    wireOnce(); paintSwitch(); paintWake(); applyWake();
+    peerName="";peerAvail="";peerLastSeen=0;lastContact=0;peerOnlineFB=false;
+    loadPeer();
+    $("chatCompany").textContent=(c&&c.name)||peerName||"Novo contato";
+    $("messages").innerHTML=""; setMsg(false); show("inside");
+    addSystem("Conversa não fica gravada no aparelho.");
+    updatePeerUI();
+    if(uiTimer) clearInterval(uiTimer);
+    uiTimer=setInterval(updatePeerUI, 30000);
+    fbInit(pair);
+    startNetwork(pair);
+  }
+
+  // ---------- botões da tela de contatos ----------
+  $("inviteBtn").addEventListener("click",async function(){
+    var pair=gerarSenha();
+    await addContactFromPair(pair,false);
+    showInvite(pair);
+  });
+  $("joinBtn").addEventListener("click",async function(){
+    var t=window.prompt("Cole aqui o link (ou o código) do convite que você recebeu:","");
+    if(t===null) return;
+    var pair=extractPair(t);
+    if(!pair || pair.length<12){ window.alert("Convite inválido. Cole o link inteiro."); return; }
+    await addContactFromPair(pair,true);
+  });
+  $("profileBtn").addEventListener("click",showProfile);
+  $("lockBackBtn").addEventListener("click",function(){ startLocked(); });
+
+  // ---------- meu perfil: nome e foto/logo, editáveis a qualquer momento ----------
+  function showProfile(){
+    var cfg=load()||{};
+    var tmpLogo=(cfg.logo||null), tmpColors=(cfg.colors||null);
+    var box=document.createElement("div"); box.className="qrbox";
+    box.innerHTML='<div class="qrcard">'+
+      '<h3>Meu nome e foto</h3>'+
+      '<p>É isto que a outra pessoa vê. Você pode mudar quando quiser.</p>'+
+      '<div class="logowrap" style="margin:0 auto 12px"><div class="logo" id="pfPreview"></div></div>'+
+      '<input class="invlink" id="pfName" style="font-size:14px;text-align:center" placeholder="Seu nome">'+
+      '<div class="logopick" style="justify-content:center;margin-top:10px">'+
+        '<button type="button" class="ghost" id="pfPick" style="margin:0;font-size:13px;padding:11px">Trocar foto/logo</button>'+
+        '<button type="button" class="rm hidden" id="pfClear" style="margin:0;font-size:13px;padding:11px">Remover</button>'+
+      '</div>'+
+      '<input id="pfFile" type="file" accept="image/*" class="hidden">'+
+      '<div id="pfMsg" class="msgline"></div>'+
+      '<button id="pfSave" style="margin-top:10px">Salvar</button>'+
+      '<button class="ghost" id="pfCancel" style="margin-top:8px">Cancelar</button>'+
+    '</div>';
+    document.body.appendChild(box);
+    var q=function(id){ return box.querySelector("#"+id); };
+    q("pfName").value=cfg.name||"";
+    fillLogo(q("pfPreview"),tmpLogo);
+    if(tmpLogo) q("pfClear").classList.remove("hidden");
+    q("pfPick").addEventListener("click",function(){ q("pfFile").click(); });
+    q("pfFile").addEventListener("change",function(){
+      var f=this.files&&this.files[0]; if(!f) return;
+      scaleImage(f,160,function(d,cols){ if(!d) return; tmpLogo=d; tmpColors=cols||DEF_COLORS;
+        fillLogo(q("pfPreview"),tmpLogo); q("pfClear").classList.remove("hidden"); });
+    });
+    q("pfClear").addEventListener("click",function(){ tmpLogo=null; tmpColors=null; q("pfFile").value="";
+      fillLogo(q("pfPreview"),null); this.classList.add("hidden"); });
+    function close(){ try{ document.body.removeChild(box); }catch(e){} }
+    q("pfCancel").addEventListener("click",close);
+    box.addEventListener("click",function(e){ if(e.target===box) close(); });
+    q("pfSave").addEventListener("click",function(){
+      var nm=q("pfName").value.trim();
+      if(!nm){ q("pfMsg").className="msgline err"; q("pfMsg").textContent="Escreva o seu nome."; return; }
+      var c=load(); if(!c){ close(); return; }
+      c.name=nm; c.logo=tmpLogo||null; c.colors=tmpColors||c.colors||DEF_COLORS;
+      if(!save(c)){ q("pfMsg").className="msgline err"; q("pfMsg").textContent="Não foi possível salvar (imagem muito grande?)."; return; }
+      paintIdentity(c);
+      if(conn && conn.open) sendHello();   // avisa o outro o novo nome, se estiver conversando
+      close();
+    });
+  }
+  $("reconfigBtn2").addEventListener("click",function(){
+    if(window.confirm("Isto apaga o seu acesso e TODOS os contatos deste aparelho. Continuar?")){
+      wipe(); location.reload();
+    }
+  });
+  function gerarSenha(){
+    var abc="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    var a=new Uint8Array(24); crypto.getRandomValues(a);
+    var s=""; for(var i=0;i<a.length;i++){ s+=abc[a[i]%abc.length]; if(i%6===5 && i<a.length-1) s+="-"; }
+    return s;
+  }
+
+  // ---------- instalar como aplicativo ----------
+  if("serviceWorker" in navigator && location.protocol==="https:"){
+    window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+  }
+
+  // ---------- início ----------
+  (function(){
+    if(!cryptoOK){ document.body.innerHTML="<div style='color:#fca5a5;font:14px sans-serif;text-align:center;padding:40px'>Este aplicativo precisa de um endereço seguro (https).</div>"; return; }
+    var cfg=load();
+    if(cfg && cfg.v===CFG_VERSION){ paintIdentity(cfg); startLocked(); }
+    else { if(cfg) wipe(); paintIdentity({}); show("setup"); }
+  })();
+})();
+</script>
+</body>
+</html>
